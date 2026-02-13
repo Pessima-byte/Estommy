@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  price     Float
+  stock     Int      @default(0)
+  status    String   @default("In Stock")
+  costPrice Float    @default(0)
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  email     String?  @unique
+  phone     String?  @unique
+  gender    String?
+  address   String?
+  signature String?  @unique
+  status    String   @default("Active")
+  avatar    String?
+  attachment String?
+  totalDebt Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  credits   Credit[]
+  sales     Sale[]
+}
+
+model Sale {
+  id                String   @id @default(cuid())
+  customerId        String
+  productId         String
+  date              String
+  amount            Float
+  quantity          Int      @default(1)
+  costPriceSnapshot Float    @default(0)
+  status            String   @default("Completed")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Credit {
+  id           String   @id @default(cuid())
+  customerId   String
+  amount       Float
+  amountPaid   Float    @default(0)
+  dueDate      String
+  status       String   @default("Pending")
+  notes        String?
+  paymentTerms String?
+  interestRate Float?
+  reference    String?
+  contactPhone String?
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Profit {
+  id          String   @id @default(cuid())
+  date        String
+  amount      Float
+  type        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  phone         String?
+  password      String?
+  role          String   @default("USER")
+  image         String?
+  provider      String?
+  providerId    String?
+  notifications Boolean  @default(true)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  userName    String?
+  action      String
+  entityType  String
+  entityId    String?
+  entityName  String?
+  description String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

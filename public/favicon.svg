@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="32" height="32" fill="#1a1a1a"/>
+<text x="4" y="22" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="url(#textGradient)">ESTOMMY</text>
+<path d="M26 8L27.5 12L31 12L28.5 14.5L29.5 18L26 16L22.5 18L23.5 14.5L21 12L24.5 12L26 8Z" fill="#ff69b4"/>
+<defs>
+<linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#6366f1"/>
+<stop offset="100%" stop-color="#8a5cff"/>
+</linearGradient>
+</defs>
+</svg> 
