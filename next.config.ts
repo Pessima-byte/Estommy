@@ -50,6 +50,11 @@ const nextConfig: NextConfig = {
         port: '3030',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'wvmkuiiktdadezifbrhv.supabase.co',
+        pathname: '/**',
+      },
     ],
   },
   eslint: {
