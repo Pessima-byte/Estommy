@@ -28,9 +28,11 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+DATABASE_URL="postgresql://postgres.wvmkuiiktdadezifbrhv:f4C89%3Fz%3FY%257tNz%21@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true" npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/check-users.ts
 
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+DATABASE_URL="postgresql://postgres.wvmkuiiktdadezifbrhv:f4C89%3Fz%3FY%257tNz%21@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true" npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/reset-admin.ts
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

@@ -9,6 +9,7 @@ export const productSchema = z.object({
     stock: z.number().int().min(0, "Stock must be a non-negative integer"),
     status: z.enum(["In Stock", "Low Stock", "Out of Stock"]).optional(),
     image: z.string().nullable().optional().or(z.literal('')),
+    images: z.array(z.string()).optional(),
 });
 
 // Customer Schema

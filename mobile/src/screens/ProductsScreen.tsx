@@ -9,6 +9,7 @@ import ProductCard from '../components/ProductCard';
 import SelectionModal from '../components/SelectionModal';
 import InventoryHero from '../components/products/InventoryHero';
 import InventoryFilters from '../components/products/InventoryFilters';
+import ProductDetailsModal from './ProductDetailsModal';
 import { exportToCSV } from '../utils/export';
 
 export default function ProductsScreen() {
@@ -16,6 +17,8 @@ export default function ProductsScreen() {
     const { width } = useWindowDimensions();
     const [isAdding, setIsAdding] = useState(false);
     const [editProduct, setEditProduct] = useState<Product | null>(null);
+    const [viewProduct, setViewProduct] = useState<Product | null>(null);
+    const [isViewing, setIsViewing] = useState(false);
     const [exporting, setExporting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export default function ProductsScreen() {
     const isDesktop = width >= 1024;
     const isLargePhone = width >= 500;
     const gap = Spacing.md;
-    const numCols = 3;
+    const numCols = isDesktop ? 4 : isTablet ? 3 : isLargePhone ? 2 : 1;
     const sidebarWidth = width >= 1024 ? 240 : 0;
     const availableWidth = width - sidebarWidth - (Spacing.xl * 2);
 
@@ -56,6 +59,11 @@ export default function ProductsScreen() {
     const handleEdit = (product: Product) => {
         setEditProduct(product);
         setIsAdding(true);
+    };
+
+    const handleDetails = (product: Product) => {
+        setViewProduct(product);
+        setIsViewing(true);
     };
 
     const handleDelete = (id: string) => {
@@ -140,6 +148,7 @@ export default function ProductsScreen() {
                         width={itemWidth}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onPress={handleDetails}
                     />
                 )}
                 columnWrapperStyle={numCols > 1 ? { gap } : null}
@@ -173,6 +182,15 @@ export default function ProductsScreen() {
                     initialProduct={editProduct}
                 />
             </Modal>
+
+            <ProductDetailsModal
+                visible={isViewing}
+                onClose={() => {
+                    setIsViewing(false);
+                    setViewProduct(null);
+                }}
+                product={viewProduct}
+            />
 
             <SelectionModal
                 visible={categoryModalVisible}

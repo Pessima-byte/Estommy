@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { name, category, price, costPrice, stock, status, image } = validation.data;
+    const { name, category, price, costPrice, stock, status, image, images } = validation.data;
 
     const product = await prisma.product.create({
       data: {
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
         stock,
         status: status || 'In Stock',
         image: image || null,
+        images: images || [],
       },
     });
 

@@ -57,7 +57,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 showToast('Authentication Failed', 'error');
             }
         } catch (error: any) {
-            console.error('[Login] Error details:', error);
+            console.error('[Login] Full Error:', error);
+            if (error.response?.data) {
+                console.error('[Login] Response Data:', JSON.stringify(error.response.data, null, 2));
+            }
             showToast(error.response?.data?.error || 'Access Denied', 'error');
         } finally {
             setLoading(false);

@@ -12,10 +12,15 @@ interface ProductCardProps {
     width: number;
     onEdit: (p: Product) => void;
     onDelete: (id: string) => void;
+    onPress: (p: Product) => void;
 }
 
-const ProductCard = ({ item, width, onEdit, onDelete }: ProductCardProps) => (
-    <View style={[styles.productCard, { width }]}>
+const ProductCard = ({ item, width, onEdit, onDelete, onPress }: ProductCardProps) => (
+    <TouchableOpacity
+        style={[styles.productCard, { width }]}
+        activeOpacity={0.9}
+        onPress={() => onPress(item)}
+    >
         <View style={styles.cardImageContainer}>
             <Image
                 source={{ uri: getImageUrl(item.image) || 'https://placehold.co/400x300?text=ESTOMMY' }}
@@ -85,7 +90,7 @@ const ProductCard = ({ item, width, onEdit, onDelete }: ProductCardProps) => (
                 </TouchableOpacity>
             </View>
         </View>
-    </View>
+    </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({

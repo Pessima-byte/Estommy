@@ -73,11 +73,6 @@ export default function EditProfileModal({ visible, onClose }: EditProfileModalP
                 return;
             }
 
-            if (imagePath && imagePath.includes('/uploads/')) {
-                const parts = imagePath.split('/uploads/');
-                imagePath = `/uploads/${parts[parts.length - 1]}`;
-            }
-
             await updateProfile({
                 name,
                 email,

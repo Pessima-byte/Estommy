@@ -31,6 +31,7 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
     const [price, setPrice] = useState(initialProduct?.price?.toString() || '');
     const [stock, setStock] = useState(initialProduct?.stock?.toString() || '');
     const [image, setImage] = useState(initialProduct?.image || '');
+    const [images, setImages] = useState<string[]>(initialProduct?.images || []);
     const [loading, setLoading] = useState(false);
 
     // Category Selection Logic
@@ -73,10 +74,21 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
             allowsEditing: true,
             aspect: [4, 3],
             quality: 1,
+            allowsMultipleSelection: true,
+            selectionLimit: 5
         });
 
         if (!result.canceled) {
-            setImage(result.assets[0].uri);
+            const newUris = result.assets.map(a => a.uri);
+            if (newUris.length > 0) {
+                // First image becomes primary if none exists
+                if (!image) {
+                    setImage(newUris[0]);
+                    setImages(prev => [...prev, ...newUris.slice(1)]);
+                } else {
+                    setImages(prev => [...prev, ...newUris]);
+                }
+            }
         }
     };
 
@@ -95,9 +107,22 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
                     const uploadRes = await filesAPI.upload(image);
                     imageUrl = uploadRes.url;
                 } catch (err) {
-                    console.error('Upload failed', err);
-                    showToast('Failed to upload image. Saving without it.', 'info');
-                    imageUrl = '';
+                    console.error('Main image upload failed', err);
+                    showToast('Failed to upload main image.', 'info');
+                }
+            }
+
+            const uploadedImages: string[] = [];
+            for (const imgUri of images) {
+                if (imgUri.startsWith('file:') || imgUri.startsWith('content:')) {
+                    try {
+                        const uploadRes = await filesAPI.upload(imgUri);
+                        uploadedImages.push(uploadRes.url);
+                    } catch (err) {
+                        console.error('Additional image upload failed', err);
+                    }
+                } else {
+                    uploadedImages.push(imgUri);
                 }
             }
 
@@ -108,6 +133,7 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
                 costPrice: parseFloat(costPrice || '0'),
                 stock: parseInt(stock),
                 image: imageUrl || null,
+                images: uploadedImages,
                 status: parseInt(stock) > 0 ? 'In Stock' : 'Out of Stock'
             };
 
@@ -123,6 +149,14 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
             showToast(error.message || 'Unable to save product details.', 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRemoveImage = (uri: string, isPrimary: boolean) => {
+        if (isPrimary) {
+            setImage('');
+        } else {
+            setImages(prev => prev.filter(img => img !== uri));
         }
     };
 
@@ -157,7 +191,9 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
                             {/* Visual Identity (Image Picker) */}
                             <ProductImagePicker
                                 image={image}
+                                images={images}
                                 onPickImage={pickImage}
+                                onRemoveImage={handleRemoveImage}
                                 isTablet={isTablet}
                             />
 
