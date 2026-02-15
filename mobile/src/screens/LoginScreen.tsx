@@ -28,12 +28,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
     // Google Auth Request Configuration
     // We force the use of the Expo Proxy (https://auth.expo.io) 
-    // This is required for Google Sign-In to work in Expo Go.
+    // This providing a valid HTTPS URL that Google will accept.
+    const redirectUri = makeRedirectUri({
+        useProxy: true,
+    } as any);
+
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         scopes: ['profile', 'email'],
+        redirectUri,
     });
 
     React.useEffect(() => {
