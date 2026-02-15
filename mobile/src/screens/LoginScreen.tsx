@@ -27,11 +27,25 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const isIPad = width >= 768;
 
     // Google Auth Request Configuration
+    // We explicitly define the redirect URI to ensure consistency
+    const redirectUri = makeRedirectUri({
+        scheme: 'estommy',
+        path: 'auth'
+    });
+
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+        scopes: ['profile', 'email'],
+        redirectUri
     });
+
+    React.useEffect(() => {
+        if (request) {
+            console.log('[Google Auth] Redirect URI:', request.redirectUri);
+        }
+    }, [request]);
 
     React.useEffect(() => {
         if (response?.type === 'success') {
@@ -41,6 +55,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             handleSocialAuth('google', authentication?.accessToken || authentication?.idToken || '');
         } else if (response?.type === 'error') {
             showToast('Google Sign-In failed', 'error');
+            console.error('[Google Auth] Response Error:', response.error);
         }
     }, [response]);
 
@@ -51,7 +66,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         }
         setLoading(true);
         try {
-            // For Google, we might need to send the token to backend to verify
+            // New Endpoint handling
             const data = await authAPI.socialLogin({ provider, token });
             if (data.token) {
                 await SecureStore.setItemAsync('auth_token', data.token);
@@ -71,7 +86,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
     const handleGoogleLogin = () => {
         const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-        const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
         if (!webClientId || webClientId.includes('your_web_client_id')) {
             showToast('Google Sign-In not configured. Check .env', 'error');
@@ -83,6 +97,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             return;
         }
         promptAsync();
+        // Use promptAsync with explicit options if needed
     };
 
     const handleGithubLogin = async () => {
