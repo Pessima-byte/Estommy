@@ -163,25 +163,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                                     </View>
                                 </View>
 
-                                {/* Social Login Buttons */}
-                                <View style={styles.socialButtonsGroup}>
-                                    <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-                                        <Chrome size={22} color="#CBD5E1" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.socialButton} onPress={handleGithubLogin}>
-                                        <Github size={22} color="#CBD5E1" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-                                        <Facebook size={22} color="#CBD5E1" />
-                                    </TouchableOpacity>
-                                </View>
-
-                                <View style={styles.dividerRow}>
-                                    <View style={styles.dividerLine} />
-                                    <Text style={styles.dividerText}>OR LOGIN WITH EMAIL</Text>
-                                    <View style={styles.dividerLine} />
-                                </View>
-
                                 <View style={styles.inputWrapper}>
                                     <Text style={styles.label}>PASSWORD</Text>
                                     <View style={styles.inputContainer}>
@@ -219,6 +200,25 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                                         </View>
                                     )}
                                 </TouchableOpacity>
+
+                                <View style={styles.dividerRow}>
+                                    <View style={styles.dividerLine} />
+                                    <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+                                    <View style={styles.dividerLine} />
+                                </View>
+
+                                {/* Social Login Buttons */}
+                                <View style={styles.socialButtonsGroup}>
+                                    <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+                                        <Chrome size={20} color="#CBD5E1" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.socialButton} onPress={handleGithubLogin}>
+                                        <Github size={20} color="#CBD5E1" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
+                                        <Facebook size={20} color="#CBD5E1" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             {/* Footer */}
@@ -262,12 +262,12 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 24,
+        padding: 16,
     },
     cardContainer: {
         width: '100%',
-        maxWidth: 400,
-        borderRadius: 32,
+        maxWidth: 380,
+        borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
@@ -280,17 +280,18 @@ const styles = StyleSheet.create({
         maxWidth: 480,
     },
     glassCard: {
-        padding: 40,
+        padding: 24,
+        paddingTop: 32,
         backgroundColor: Platform.OS === 'android' ? 'rgba(15, 23, 42, 0.95)' : undefined,
     },
     headerSection: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 24,
     },
     sidebarLogoWrapper: {
-        width: 240,
-        padding: 15,
-        marginBottom: 10,
+        width: 200,
+        padding: 0,
+        marginBottom: 16,
     },
     logoPill: {
         width: '100%',
@@ -308,25 +309,25 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     welcomeText: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '800',
         color: '#FFF',
-        marginBottom: 8,
+        marginBottom: 4,
         letterSpacing: 0.5,
     },
     subText: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#94A3B8',
         fontWeight: '500',
     },
     formSection: {
-        gap: 24,
+        gap: 16,
     },
     inputWrapper: {
-        gap: 8,
+        gap: 6,
     },
     label: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '700',
         color: '#CBD5E1',
         letterSpacing: 1,
@@ -335,20 +336,20 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 56,
+        height: 48,
         backgroundColor: 'rgba(2, 6, 23, 0.5)',
-        borderRadius: 16,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
         paddingHorizontal: 16,
     },
     inputIcon: {
-        marginRight: 12,
+        marginRight: 10,
     },
     input: {
         flex: 1,
         color: '#FFF',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '500',
         height: '100%',
     },
@@ -359,13 +360,13 @@ const styles = StyleSheet.create({
     socialButtonsGroup: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 24,
-        marginBottom: 8,
+        gap: 16,
+        marginBottom: 0,
     },
     socialButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 18,
+        width: 48,
+        height: 48,
+        borderRadius: 14,
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
@@ -376,8 +377,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 16,
+        gap: 12,
         marginBottom: 0,
+        marginTop: 8,
     },
     dividerLine: {
         flex: 1,
@@ -396,47 +398,47 @@ const styles = StyleSheet.create({
     },
     forgotPasswordText: {
         color: '#60A5FA',
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '600',
     },
     signInButton: {
-        height: 56,
+        height: 50,
         backgroundColor: '#3B82F6',
-        borderRadius: 16,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 12,
+        marginTop: 8,
         shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 6,
     },
     btnContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
     },
     signInButtonText: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '700',
         letterSpacing: 0.5,
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 32,
+        marginTop: 24,
         gap: 6,
     },
     footerText: {
         color: '#64748B',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '500',
     },
     footerLink: {
         color: '#FFF',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '700',
     },
 });
