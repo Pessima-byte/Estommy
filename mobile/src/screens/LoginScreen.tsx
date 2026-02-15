@@ -27,18 +27,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const isIPad = width >= 768;
 
     // Google Auth Request Configuration
-    // We explicitly define the redirect URI to ensure consistency
-    const redirectUri = makeRedirectUri({
-        scheme: 'estommy',
-        path: 'auth'
-    });
-
+    // We request an ID Token to match the backend validation logic
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         scopes: ['profile', 'email'],
-        redirectUri
+        responseType: ResponseType.IdToken,
     });
 
     React.useEffect(() => {
@@ -49,10 +44,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
     React.useEffect(() => {
         if (response?.type === 'success') {
-            const { authentication } = response;
-            // Use accessToken or idToken depending on what backend expects.
-            // Google provider usually returns authentication object with accessToken and idToken
-            handleSocialAuth('google', authentication?.accessToken || authentication?.idToken || '');
+            const { authentication, params } = response;
+            // With ResponseType.IdToken, the token is in params.id_token
+            const token = params?.id_token || authentication?.idToken || authentication?.accessToken || '';
+            handleSocialAuth('google', token);
         } else if (response?.type === 'error') {
             showToast('Google Sign-In failed', 'error');
             console.error('[Google Auth] Response Error:', response.error);
