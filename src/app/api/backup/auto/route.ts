@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import fs from 'fs/promises';
-import path from 'path';
+import { supabase } from '@/lib/supabase';
 
-const BACKUP_DIR = path.join(process.cwd(), 'backups');
 const CRON_SECRET = process.env.CRON_SECRET || 'your-secret-key-here';
+const BACKUP_BUCKET = 'backups';
 
-// Ensure backup directory exists
-async function ensureBackupDir() {
-    try {
-        await fs.access(BACKUP_DIR);
-    } catch {
-        await fs.mkdir(BACKUP_DIR, { recursive: true });
+// Ensure backup bucket exists
+async function ensureBackupBucket() {
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    if (error) throw error;
+
+    if (!buckets.find(b => b.name === BACKUP_BUCKET)) {
+        console.log('[AutoBackup] Creating backups bucket...');
+        const { error: createError } = await supabase.storage.createBucket(BACKUP_BUCKET, {
+            public: false, // Keep backups private
+            fileSizeLimit: 52428800, // 50MB
+        });
+        if (createError) throw createError;
     }
 }
 
@@ -21,35 +26,6 @@ function getBackupFilename() {
     const timestamp = now.toISOString().replace(/[:.]/g, '-').split('T')[0];
     const time = now.toTimeString().split(' ')[0].replace(/:/g, '-');
     return `backup_auto_${timestamp}_${time}.json`;
-}
-
-// Clean old backups (keep only last 30 days)
-async function cleanOldBackups() {
-    await ensureBackupDir();
-    const files = await fs.readdir(BACKUP_DIR);
-    const autoBackups = files.filter(f => f.startsWith('backup_auto_') && f.endsWith('.json'));
-
-    const backupsWithStats = await Promise.all(
-        autoBackups.map(async (filename) => {
-            const filePath = path.join(BACKUP_DIR, filename);
-            const stats = await fs.stat(filePath);
-            return { filename, created: stats.birthtime };
-        })
-    );
-
-    // Sort by creation date (newest first)
-    backupsWithStats.sort((a, b) => b.created.getTime() - a.created.getTime());
-
-    // Keep only last 30 backups
-    const MAX_BACKUPS = 30;
-    if (backupsWithStats.length > MAX_BACKUPS) {
-        const toDelete = backupsWithStats.slice(MAX_BACKUPS);
-        for (const backup of toDelete) {
-            const filePath = path.join(BACKUP_DIR, backup.filename);
-            await fs.unlink(filePath);
-            console.log(`[AutoBackup] Deleted old backup: ${backup.filename}`);
-        }
-    }
 }
 
 // Create backup data
@@ -63,7 +39,7 @@ async function createBackupData() {
         prisma.category.findMany(),
         prisma.activity.findMany({
             orderBy: { createdAt: 'desc' },
-            take: 1000, // Keep last 1000 activities to prevent huge backups
+            take: 1000,
         }),
         prisma.user.findMany({
             select: {
@@ -109,32 +85,39 @@ async function createBackupData() {
     };
 }
 
-// Save backup to file
-async function saveBackupToFile(backupData: any) {
-    await ensureBackupDir();
-    const filename = getBackupFilename();
-    const filePath = path.join(BACKUP_DIR, filename);
+// Clean old backups (keep only last 30)
+async function cleanOldBackups() {
+    const { data: files, error } = await supabase.storage
+        .from(BACKUP_BUCKET)
+        .list('', {
+            limit: 100,
+            sortBy: { column: 'created_at', order: 'desc' }
+        });
 
-    await fs.writeFile(filePath, JSON.stringify(backupData, null, 2), 'utf-8');
+    if (error) {
+        console.error('[AutoBackup] Error listing backups for cleanup:', error);
+        return;
+    }
 
-    const stats = await fs.stat(filePath);
-    return { filename, path: filePath, size: stats.size };
+    const autoBackups = files.filter(f => f.name.startsWith('backup_auto_'));
+    const MAX_BACKUPS = 30;
+
+    if (autoBackups.length > MAX_BACKUPS) {
+        const toDelete = autoBackups.slice(MAX_BACKUPS).map(f => f.name);
+        const { error: deleteError } = await supabase.storage
+            .from(BACKUP_BUCKET)
+            .remove(toDelete);
+
+        if (deleteError) {
+            console.error('[AutoBackup] Error deleting old backups:', deleteError);
+        } else {
+            console.log(`[AutoBackup] Deleted ${toDelete.length} old backups.`);
+        }
+    }
 }
 
-/**
- * Automatic Daily Backup Cron Job
- * This endpoint should be called daily by a cron service (e.g., Vercel Cron, GitHub Actions)
- * 
- * Security: Requires CRON_SECRET in Authorization header
- * 
- * To set up:
- * 1. Add CRON_SECRET to your .env file
- * 2. Configure your cron service to call this endpoint daily at a specific time
- * 3. Example: Daily at 2 AM UTC
- */
 export async function POST(request: NextRequest) {
     try {
-        // Verify cron secret
         const authHeader = request.headers.get('authorization');
         const providedSecret = authHeader?.replace('Bearer ', '');
 
@@ -143,45 +126,59 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log('[AutoBackup] Starting automatic backup...');
+        console.log('[AutoBackup] Starting automatic backup to Supabase...');
         const startTime = Date.now();
 
-        // Create backup data
+        // 1. Ensure bucket exists
+        await ensureBackupBucket();
+
+        // 2. Create backup data
         const backupData = await createBackupData();
+        const jsonContent = JSON.stringify(backupData, null, 2);
+        const filename = getBackupFilename();
 
-        // Save to file
-        const fileInfo = await saveBackupToFile(backupData);
+        // 3. Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+            .from(BACKUP_BUCKET)
+            .upload(filename, jsonContent, {
+                contentType: 'application/json',
+                upsert: true
+            });
 
-        // Clean old backups
+        if (uploadError) throw uploadError;
+
+        // 4. Clean old backups
         await cleanOldBackups();
 
-        // Log the backup activity
+        const duration = Date.now() - startTime;
+        const fileSize = Buffer.byteLength(jsonContent);
+
+        // 5. Log the backup activity in DB
         await prisma.activity.create({
             data: {
                 userId: 'system',
                 userName: 'System',
                 action: 'BACKUP',
                 entityType: 'SYSTEM',
-                description: `Automatic daily backup completed: ${fileInfo.filename}`,
-                metadata: {
-                    filename: fileInfo.filename,
-                    size: fileInfo.size,
+                description: `Automatic daily backup saved to cloud: ${filename}`,
+                metadata: JSON.stringify({
+                    filename,
+                    size: fileSize,
                     stats: backupData.stats,
-                    duration: Date.now() - startTime,
+                    duration,
                     type: 'automatic',
-                },
+                }),
             },
         });
 
-        const duration = Date.now() - startTime;
-        console.log(`[AutoBackup] Backup completed in ${duration}ms: ${fileInfo.filename}`);
+        console.log(`[AutoBackup] Cloud backup completed in ${duration}ms: ${filename}`);
 
         return NextResponse.json({
             success: true,
-            message: 'Automatic backup completed successfully',
+            message: 'Automatic cloud backup completed successfully',
             backup: {
-                filename: fileInfo.filename,
-                size: fileInfo.size,
+                filename,
+                size: fileSize,
                 stats: backupData.stats,
                 duration,
             },
@@ -189,7 +186,6 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('[AutoBackup] Failed to create automatic backup:', error);
 
-        // Log the failure
         try {
             await prisma.activity.create({
                 data: {
@@ -197,11 +193,11 @@ export async function POST(request: NextRequest) {
                     userName: 'System',
                     action: 'BACKUP',
                     entityType: 'SYSTEM',
-                    description: 'Automatic backup failed',
-                    metadata: {
+                    description: 'Automatic cloud backup failed',
+                    metadata: JSON.stringify({
                         error: error instanceof Error ? error.message : 'Unknown error',
                         type: 'automatic',
-                    },
+                    }),
                 },
             });
         } catch (logError) {
@@ -216,7 +212,6 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// GET: Check backup status and configuration
 export async function GET(request: NextRequest) {
     try {
         const authHeader = request.headers.get('authorization');
@@ -226,42 +221,35 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await ensureBackupDir();
-        const files = await fs.readdir(BACKUP_DIR);
-        const autoBackups = files.filter(f => f.startsWith('backup_auto_') && f.endsWith('.json'));
+        const { data: files, error } = await supabase.storage
+            .from(BACKUP_BUCKET)
+            .list('', {
+                limit: 50,
+                sortBy: { column: 'created_at', order: 'desc' }
+            });
 
-        const backupsWithStats = await Promise.all(
-            autoBackups.map(async (filename) => {
-                const filePath = path.join(BACKUP_DIR, filename);
-                const stats = await fs.stat(filePath);
-                return {
-                    filename,
-                    size: stats.size,
-                    created: stats.birthtime,
-                };
-            })
-        );
+        if (error && error.message !== 'Bucket not found') {
+            throw error;
+        }
 
-        backupsWithStats.sort((a, b) => b.created.getTime() - a.created.getTime());
-
-        const lastBackup = backupsWithStats[0];
-        const totalSize = backupsWithStats.reduce((sum, b) => sum + b.size, 0);
+        const backups = files || [];
+        const lastBackup = backups[0];
 
         return NextResponse.json({
             configured: true,
-            totalBackups: backupsWithStats.length,
-            totalSize,
+            storageType: 'Supabase Cloud',
+            totalBackups: backups.length,
             lastBackup: lastBackup ? {
-                filename: lastBackup.filename,
-                size: lastBackup.size,
-                created: lastBackup.created,
-                age: Date.now() - lastBackup.created.getTime(),
+                filename: lastBackup.name,
+                size: lastBackup.metadata?.size,
+                created: lastBackup.created_at,
             } : null,
             nextScheduled: 'Daily at 2:00 AM UTC',
-            retentionDays: 30,
+            retention: 'Last 30 days',
         });
     } catch (error) {
         console.error('[AutoBackup] Failed to get backup status:', error);
         return NextResponse.json({ error: 'Failed to get backup status' }, { status: 500 });
     }
 }
+
