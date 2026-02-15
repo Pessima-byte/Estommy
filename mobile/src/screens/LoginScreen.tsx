@@ -27,26 +27,31 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const isIPad = width >= 768;
 
     // Google Auth Request Configuration
-    // REPLACE WITH YOUR ACTUAL CLIENT IDs FROM THE DEVELOPER CONSOLE
-    // Web Client ID is used for Expo Go
     const [request, response, promptAsync] = Google.useAuthRequest({
-        clientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-        iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-        androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     });
 
     React.useEffect(() => {
         if (response?.type === 'success') {
-            const { id_token } = response.params;
-            handleSocialAuth('google', id_token!);
+            const { authentication } = response;
+            // Use accessToken or idToken depending on what backend expects.
+            // Google provider usually returns authentication object with accessToken and idToken
+            handleSocialAuth('google', authentication?.accessToken || authentication?.idToken || '');
         } else if (response?.type === 'error') {
             showToast('Google Sign-In failed', 'error');
         }
     }, [response]);
 
     const handleSocialAuth = async (provider: string, token: string) => {
+        if (!token) {
+            showToast('No auth token received', 'error');
+            return;
+        }
         setLoading(true);
         try {
+            // For Google, we might need to send the token to backend to verify
             const data = await authAPI.socialLogin({ provider, token });
             if (data.token) {
                 await SecureStore.setItemAsync('auth_token', data.token);
@@ -57,15 +62,24 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             }
         } catch (error: any) {
             console.error(`[${provider}] Error:`, error);
-            showToast(error.response?.data?.error || 'Social login failed', 'error');
+            const msg = error.response?.data?.error || error.message || 'Social login failed';
+            showToast(msg, 'error');
         } finally {
             setLoading(false);
         }
     };
 
     const handleGoogleLogin = () => {
+        const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+        const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
+        if (!webClientId || webClientId.includes('your_web_client_id')) {
+            showToast('Google Sign-In not configured. Check .env', 'error');
+            return;
+        }
+
         if (!request) {
-            showToast('Google Sign-In not ready. Configure Client IDs.', 'info');
+            showToast('Google Sign-In initializing...', 'info');
             return;
         }
         promptAsync();
