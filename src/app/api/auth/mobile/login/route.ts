@@ -67,8 +67,11 @@ export async function POST(request: NextRequest) {
             }
         }, { headers: corsHeaders });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Mobile login error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: corsHeaders });
+        return NextResponse.json({
+            error: 'Internal server error',
+            details: error instanceof Error ? error.message : String(error)
+        }, { status: 500, headers: corsHeaders });
     }
 }
