@@ -70,6 +70,8 @@ const createAPI = <T>(endpoint: string) => ({
 
 export const authAPI = {
     login: (credentials: LoginCredentials): Promise<any> => api.post('/auth/mobile/login', credentials),
+    socialLogin: (payload: { provider: string; token: string; email?: string; name?: string; image?: string }): Promise<any> =>
+        api.post('/auth/mobile/social', payload),
     logout: async () => {
         authToken = null;
         await SecureStore.deleteItemAsync('auth_token');

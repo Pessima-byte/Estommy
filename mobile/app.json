@@ -2,6 +2,7 @@
   "expo": {
     "name": "mobile",
     "slug": "mobile",
+    "scheme": "estommy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -33,7 +34,8 @@
         {
           "photosPermission": "The app accesses your photos successfully to let you share them with your friends."
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

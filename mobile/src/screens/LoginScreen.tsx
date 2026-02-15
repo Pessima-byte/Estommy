@@ -4,13 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
+import { Lock, Mail, Eye, EyeOff, ArrowRight, Github, Chrome, Facebook } from 'lucide-react-native';
 import { Colors } from '../constants/Theme';
 import { authAPI } from '../api/client';
 import * as SecureStore from 'expo-secure-store';
 import { useToast } from '../hooks/useToast';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri, useAuthRequest, ResponseType } from 'expo-auth-session';
 
 const LOGO_IMAGE = require('../../assets/images/logo.jpg');
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const { showToast } = useToast();
@@ -18,8 +23,64 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const { width, height } = useWindowDimensions();
+    const { width } = useWindowDimensions();
     const isIPad = width >= 768;
+
+    // Google Auth Request Configuration
+    // REPLACE WITH YOUR ACTUAL CLIENT IDs FROM THE DEVELOPER CONSOLE
+    // Web Client ID is used for Expo Go
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        clientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+        iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+        androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+    });
+
+    React.useEffect(() => {
+        if (response?.type === 'success') {
+            const { id_token } = response.params;
+            handleSocialAuth('google', id_token!);
+        } else if (response?.type === 'error') {
+            showToast('Google Sign-In failed', 'error');
+        }
+    }, [response]);
+
+    const handleSocialAuth = async (provider: string, token: string) => {
+        setLoading(true);
+        try {
+            const data = await authAPI.socialLogin({ provider, token });
+            if (data.token) {
+                await SecureStore.setItemAsync('auth_token', data.token);
+                showToast(`Welcome ${data.user.name || 'User'}!`, 'success');
+                onLogin();
+            } else {
+                showToast(`${provider} login failed`, 'error');
+            }
+        } catch (error: any) {
+            console.error(`[${provider}] Error:`, error);
+            showToast(error.response?.data?.error || 'Social login failed', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleLogin = () => {
+        if (!request) {
+            showToast('Google Sign-In not ready. Configure Client IDs.', 'info');
+            return;
+        }
+        promptAsync();
+    };
+
+    const handleGithubLogin = async () => {
+        showToast('GitHub Login: Configure Client ID in LoginScreen.tsx', 'info');
+        // Example Implementation:
+        // const result = await WebBrowser.openAuthSessionAsync('https://github.com/login/oauth/authorize?client_id=YOUR_ID', 'estommy://');
+    };
+
+    const handleFacebookLogin = async () => {
+        showToast('Facebook Login: Configure Client ID in LoginScreen.tsx', 'info');
+        // Example Implementation
+    };
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -102,6 +163,25 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                                     </View>
                                 </View>
 
+                                {/* Social Login Buttons */}
+                                <View style={styles.socialButtonsGroup}>
+                                    <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+                                        <Chrome size={22} color="#CBD5E1" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.socialButton} onPress={handleGithubLogin}>
+                                        <Github size={22} color="#CBD5E1" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
+                                        <Facebook size={22} color="#CBD5E1" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.dividerRow}>
+                                    <View style={styles.dividerLine} />
+                                    <Text style={styles.dividerText}>OR LOGIN WITH EMAIL</Text>
+                                    <View style={styles.dividerLine} />
+                                </View>
+
                                 <View style={styles.inputWrapper}>
                                     <Text style={styles.label}>PASSWORD</Text>
                                     <View style={styles.inputContainer}>
@@ -169,8 +249,6 @@ const styles = StyleSheet.create({
         height: 400,
         borderRadius: 200,
         opacity: 0.3,
-        // React Native doesn't support CSS filter. Using simple low opacity or could use an image.
-        // For a glow effect, we can try shadow (iOS only mostly for this size)
         backgroundColor: '#3B82F6',
         shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 0 },
@@ -210,7 +288,7 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     sidebarLogoWrapper: {
-        width: 240, // Match sidebar width
+        width: 240,
         padding: 15,
         marginBottom: 10,
     },
@@ -277,6 +355,41 @@ const styles = StyleSheet.create({
     eyeIcon: {
         padding: 8,
     },
+    // Social Authentication Styles
+    socialButtonsGroup: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 24,
+        marginBottom: 8,
+    },
+    socialButton: {
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        marginBottom: 0,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    dividerText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#64748B',
+        letterSpacing: 1,
+    },
     forgotPassword: {
         alignSelf: 'flex-end',
         marginTop: 4,
@@ -288,7 +401,7 @@ const styles = StyleSheet.create({
     },
     signInButton: {
         height: 56,
-        backgroundColor: '#3B82F6', // Brand Blue
+        backgroundColor: '#3B82F6',
         borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
