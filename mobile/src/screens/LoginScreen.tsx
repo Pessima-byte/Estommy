@@ -30,8 +30,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     // In Expo Go, we MUST use the Web Client ID for authentication to avoid "400" Errors
     // because Native Client IDs (iOS/Android) require custom URL schemes not available in the Go app.
 
-    // Configure Redirect URI for Expo Go Proxy
-    const redirectUri = makeRedirectUri();
+    // Configure Redirect URI for Google Native (iOS)
+    // We use the Reversed Client ID scheme registered in app.json
+    const redirectUri = makeRedirectUri({
+        scheme: 'com.googleusercontent.apps.1038925777246-dj7apdped8scanlt7056spv376vhd1oa',
+    });
 
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
