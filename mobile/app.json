@@ -2,10 +2,7 @@
   "expo": {
     "name": "mobile",
     "slug": "mobile",
-    "scheme": [
-      "estommy",
-      "com.googleusercontent.apps.1038925777246-dj7apdped8scanlt7056spv376vhd1oa"
-    ],
+    "scheme": "estommy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

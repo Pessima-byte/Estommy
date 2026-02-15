@@ -26,29 +26,22 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const { width } = useWindowDimensions();
     const isIPad = width >= 768;
 
-    // Google Auth Request Configuration for Expo Go
-    // In Expo Go, we MUST use the Web Client ID for authentication to avoid "400" Errors
-    // because Native Client IDs (iOS/Android) require custom URL schemes not available in the Go app.
-
-    // Configure Redirect URI for Google Native (iOS)
-    // We use the Reversed Client ID scheme registered in app.json
-    const redirectUri = makeRedirectUri({
-        scheme: 'com.googleusercontent.apps.1038925777246-dj7apdped8scanlt7056spv376vhd1oa',
-    });
-
+    // Google Auth Request Configuration
+    // We let Google.useAuthRequest handle the redirectUri automatically
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         scopes: ['profile', 'email'],
         responseType: ResponseType.IdToken,
-        redirectUri,
     });
 
     React.useEffect(() => {
-        if (request) {
-            console.log('[Google Auth] Redirect URI:', request.redirectUri);
+        if (request?.redirectUri) {
+            console.log('[Google Auth] Active Redirect URI:', request.redirectUri);
         }
     }, [request]);
+
 
     React.useEffect(() => {
         if (response?.type === 'success') {
