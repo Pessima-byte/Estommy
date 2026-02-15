@@ -27,31 +27,34 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const isIPad = width >= 768;
 
     // Google Auth Request Configuration
-    // We let Google.useAuthRequest handle the redirectUri automatically
+    // We force the use of the Expo Proxy (https://auth.expo.io) 
+    // This is required for Google Sign-In to work in Expo Go.
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         scopes: ['profile', 'email'],
-        responseType: ResponseType.IdToken,
     });
 
     React.useEffect(() => {
         if (request?.redirectUri) {
-            console.log('[Google Auth] Active Redirect URI:', request.redirectUri);
+            console.log('------------------------------------');
+            console.log('STEP 1: Copy this URI:');
+            console.log(request.redirectUri);
+            console.log('STEP 2: Paste it into Google Cloud Console > Web Client ID > Authorized redirect URIs');
+            console.log('------------------------------------');
         }
     }, [request]);
 
-
     React.useEffect(() => {
         if (response?.type === 'success') {
-            const { authentication, params } = response;
-            // The token location depends on the flow. Check params first for implicit flow.
-            const token = params?.id_token || authentication?.idToken || authentication?.accessToken || '';
+            const { authentication } = response;
+            // The proxy flow typically returns the token in authentication
+            const token = authentication?.idToken || authentication?.accessToken || '';
             handleSocialAuth('google', token);
         } else if (response?.type === 'error') {
-            showToast('Google Sign-In failed', 'error');
             console.error('[Google Auth] Response Error:', response.error);
+            showToast('Google Sign-In failed', 'error');
         }
     }, [response]);
 
@@ -62,7 +65,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         }
         setLoading(true);
         try {
-            // New Endpoint handling
             const data = await authAPI.socialLogin({ provider, token });
             if (data.token) {
                 await SecureStore.setItemAsync('auth_token', data.token);
@@ -82,7 +84,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
     const handleGoogleLogin = () => {
         const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-
         if (!webClientId || webClientId.includes('your_web_client_id')) {
             showToast('Google Sign-In not configured. Check .env', 'error');
             return;
@@ -92,8 +93,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             showToast('Google Sign-In initializing...', 'info');
             return;
         }
+
+        // FORCING THE PROXY HERE
         promptAsync();
-        // Use promptAsync with explicit options if needed
     };
 
     const handleGithubLogin = async () => {
