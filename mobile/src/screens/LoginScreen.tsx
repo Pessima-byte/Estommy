@@ -11,7 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useToast } from '../hooks/useToast';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { makeRedirectUri, useAuthRequest, ResponseType } from 'expo-auth-session';
+import { makeRedirectUri, ResponseType } from 'expo-auth-session';
 
 const LOGO_IMAGE = require('../../assets/images/logo.jpg');
 
@@ -26,36 +26,35 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const { width } = useWindowDimensions();
     const isIPad = width >= 768;
 
-    // Google Auth Request Configuration
-    // We force the use of the Expo Proxy (https://auth.expo.io) 
-    // This providing a valid HTTPS URL that Google will accept.
-    const redirectUri = makeRedirectUri({
-        useProxy: true,
-    } as any);
+    // Google Auth Configuration
+    // We force a constant HTTPS URI to ensure Google accepts it in Expo Go
+    const proxyRedirectUri = 'https://auth.expo.io/@anonymous/mobile';
 
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         scopes: ['profile', 'email'],
-        redirectUri,
+        responseType: ResponseType.IdToken,
+        redirectUri: proxyRedirectUri,
     });
 
     React.useEffect(() => {
-        if (request?.redirectUri) {
+        if (request) {
             console.log('------------------------------------');
-            console.log('STEP 1: Copy this URI:');
-            console.log(request.redirectUri);
-            console.log('STEP 2: Paste it into Google Cloud Console > Web Client ID > Authorized redirect URIs');
+            console.log('FINAL GOOGLE AUTH SETUP:');
+            console.log('1. Go to Google Cloud Console');
+            console.log('2. Add this EXACT URI to "Authorized redirect URIs":');
+            console.log('   https://auth.expo.io/@anonymous/mobile');
             console.log('------------------------------------');
         }
     }, [request]);
 
     React.useEffect(() => {
         if (response?.type === 'success') {
-            const { authentication } = response;
-            // The proxy flow typically returns the token in authentication
-            const token = authentication?.idToken || authentication?.accessToken || '';
+            const { authentication, params } = response;
+            // The token is in params.id_token when using ResponseType.IdToken
+            const token = params?.id_token || authentication?.idToken || authentication?.accessToken || '';
             handleSocialAuth('google', token);
         } else if (response?.type === 'error') {
             console.error('[Google Auth] Response Error:', response.error);
@@ -99,19 +98,16 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             return;
         }
 
-        // FORCING THE PROXY HERE
-        promptAsync();
+        // Force the modern proxy flag for Expo Go
+        promptAsync({ proxy: true } as any);
     };
 
     const handleGithubLogin = async () => {
         showToast('GitHub Login: Configure Client ID in LoginScreen.tsx', 'info');
-        // Example Implementation:
-        // const result = await WebBrowser.openAuthSessionAsync('https://github.com/login/oauth/authorize?client_id=YOUR_ID', 'estommy://');
     };
 
     const handleFacebookLogin = async () => {
         showToast('Facebook Login: Configure Client ID in LoginScreen.tsx', 'info');
-        // Example Implementation
     };
 
     const handleLogin = async () => {
@@ -140,7 +136,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
     return (
         <View style={styles.container}>
-            {/* Background Gradient */}
             <LinearGradient
                 colors={['#0F172A', '#020617', '#000000']}
                 start={{ x: 0, y: 0 }}
@@ -148,7 +143,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 style={StyleSheet.absoluteFill}
             />
 
-            {/* Decorative Orbs */}
             <View style={[styles.orb, { top: -100, left: -100, backgroundColor: '#3B82F6', opacity: 0.15 }]} />
             <View style={[styles.orb, { bottom: -100, right: -100, backgroundColor: '#8B5CF6', opacity: 0.15 }]} />
 
@@ -157,11 +151,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 style={styles.keyboardView}
             >
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
                     <View style={[styles.cardContainer, isIPad && styles.cardContainerLarge]}>
                         <BlurView intensity={Platform.OS === 'ios' ? 40 : 100} tint="dark" style={styles.glassCard}>
-
-                            {/* Logo Section */}
                             <View style={styles.headerSection}>
                                 <View style={styles.sidebarLogoWrapper}>
                                     <View style={styles.logoPill}>
@@ -176,7 +167,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                                 <Text style={styles.subText}>Sign in to continue to ESTOMMY</Text>
                             </View>
 
-                            {/* Form Section */}
                             <View style={styles.formSection}>
                                 <View style={styles.inputWrapper}>
                                     <Text style={styles.label}>EMAIL ADDRESS</Text>
@@ -239,7 +229,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                                     <View style={styles.dividerLine} />
                                 </View>
 
-                                {/* Social Login Buttons */}
                                 <View style={styles.socialButtonsGroup}>
                                     <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
                                         <Image
@@ -257,17 +246,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                                 </View>
                             </View>
 
-                            {/* Footer */}
                             <View style={styles.footer}>
                                 <Text style={styles.footerText}>Don't have an account? </Text>
                                 <TouchableOpacity>
                                     <Text style={styles.footerLink}>Contact Admin</Text>
                                 </TouchableOpacity>
                             </View>
-
                         </BlurView>
                     </View>
-
                 </ScrollView>
             </KeyboardAvoidingView>
         </View>
@@ -392,7 +378,6 @@ const styles = StyleSheet.create({
     eyeIcon: {
         padding: 8,
     },
-    // Social Authentication Styles
     socialButtonsGroup: {
         flexDirection: 'row',
         justifyContent: 'center',
