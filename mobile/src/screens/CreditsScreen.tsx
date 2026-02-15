@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, ScrollView, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CreditCard, Search, AlertCircle, ArrowUpRight, Clock, CheckCircle2, Plus, ArrowUpDown, Filter, X } from 'lucide-react-native';
+import { CreditCard, Search, AlertCircle, ArrowUpRight, Clock, CheckCircle2, Plus, ArrowUpDown, Filter, X, Download } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCredits } from '../hooks/useCredits';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
 import SettlePaymentModal from './SettlePaymentModal';
 import AddCreditRecordScreen from './AddCreditRecordScreen';
 import { Modal } from 'react-native';
+import { exportToCSV } from '../utils/export';
+import { ActivityLogger } from '../utils/activityLogger';
 
 const CreditLedgerItem = ({ item, onSettle }: { item: any, onSettle: (credit: any) => void }) => {
     const isPaid = item.status === 'Paid';
@@ -120,13 +122,45 @@ export default function CreditsScreen() {
                                 </View>
                                 <Text style={styles.heroTitle}>CREDIT LEDGER</Text>
                             </View>
-                            <TouchableOpacity
-                                style={styles.addBtn}
-                                activeOpacity={0.8}
-                                onPress={() => setShowAdd(true)}
-                            >
-                                <Plus size={20} color="#000" />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <TouchableOpacity
+                                    style={[styles.addBtn, { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
+                                    activeOpacity={0.8}
+                                    onPress={async () => {
+                                        try {
+                                            await exportToCSV(
+                                                credits,
+                                                [
+                                                    { header: 'ID', key: 'id' },
+                                                    { header: 'Customer', key: 'customerName' },
+                                                    { header: 'Amount (LE)', key: 'amount' },
+                                                    { header: 'Paid (LE)', key: 'amountPaid' },
+                                                    { header: 'Due (LE)', key: 'liability' },
+                                                    { header: 'Status', key: 'status' },
+                                                    { header: 'Date', key: (c: any) => new Date(c.createdAt).toLocaleDateString() },
+                                                    { header: 'Notes', key: (c: any) => c.notes || '' }
+                                                ],
+                                                'ESTOMMY_Credits_Report',
+                                                'Export Credit Records'
+                                            );
+
+                                            // Log the export activity
+                                            await ActivityLogger.logExport('CREDIT', credits.length);
+                                        } catch (e) {
+                                            console.error(e);
+                                        }
+                                    }}
+                                >
+                                    <Download size={20} color="#C5A059" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.addBtn}
+                                    activeOpacity={0.8}
+                                    onPress={() => setShowAdd(true)}
+                                >
+                                    <Plus size={20} color="#000" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {/* Structured Intelligence Grid */}

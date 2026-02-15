@@ -26,9 +26,17 @@ export default function SidebarNav() {
   const { data: session } = useSession();
   const { hasPermission } = usePermissions();
 
-  // Filter links based on permissions
+  // Check if user is admin
+  const isAdmin = (session?.user as any)?.role === 'ADMIN';
+
+  // Filter links based on permissions and admin status
   const visibleLinks = navLinks.filter(link => {
-    if (!link.permission) return true; // Dashboard is always visible
+    // Users and Permissions are admin-only
+    if (link.href === '/users' || link.href === '/permissions') {
+      return isAdmin;
+    }
+
+    if (!link.permission) return true; // Dashboard and other public links
     return hasPermission(link.permission);
   });
 

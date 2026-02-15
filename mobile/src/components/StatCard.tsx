@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
+import { TouchableOpacity } from 'react-native';
 
 interface StatCardProps {
     label: string;
@@ -9,10 +10,16 @@ interface StatCardProps {
     color: string;
     flex?: boolean;
     width?: number;
+    onPress?: () => void;
 }
 
-const StatCard = ({ label, value, icon: Icon, color, flex, width }: StatCardProps) => (
-    <View style={[styles.statCard, flex ? { flex: 1 } : { width }]}>
+const StatCard = ({ label, value, icon: Icon, color, flex, width, onPress }: StatCardProps) => (
+    <TouchableOpacity
+        style={[styles.statCard, flex ? { flex: 1 } : { width }]}
+        onPress={onPress}
+        disabled={!onPress}
+        activeOpacity={0.7}
+    >
         <View style={styles.statCardInner}>
             <View style={styles.statTop}>
                 <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]}>
@@ -26,12 +33,12 @@ const StatCard = ({ label, value, icon: Icon, color, flex, width }: StatCardProp
             <View style={styles.statBottom}>
                 <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
                 <View style={styles.valueRow}>
-                    {label === 'REVENUE' && <Text style={styles.currencySymbol}>Le</Text>}
+                    {label === 'DEBTORS' && <Text style={styles.currencySymbol}>Le</Text>}
                     <Text style={styles.statValue} adjustsFontSizeToFit minimumFontScale={0.5} numberOfLines={1}>{value}</Text>
                 </View>
             </View>
         </View>
-    </View>
+    </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({

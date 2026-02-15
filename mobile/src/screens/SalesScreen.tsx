@@ -8,8 +8,6 @@ import { salesAPI } from '../api/client';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
 import { Sale } from '../types';
 import { exportToCSV } from '../utils/export';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import AddSaleScreen from './AddSaleScreen';
 import SaleCard from '../components/SaleCard';
 

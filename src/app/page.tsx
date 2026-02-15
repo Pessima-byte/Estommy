@@ -4,9 +4,11 @@ import { useState, useMemo } from 'react';
 import { useSales } from '../contexts/SalesContext';
 import { useProducts } from '../contexts/ProductsContext';
 import { useCustomers } from '../contexts/CustomersContext';
+import { useDebtors } from '../contexts/DebtorsContext';
 import { AddProductModal } from '../components/forms/AddProductModal';
 import { AddSaleModal } from '../components/forms/AddSaleModal';
 import { AddCustomerModal } from '../components/forms/AddCustomerModal';
+import { AddCreditModal } from '../components/forms/AddCreditModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -14,16 +16,18 @@ export default function Dashboard() {
     const { sales } = useSales();
     const { products } = useProducts();
     const { customers } = useCustomers();
+    const { debtors } = useDebtors();
     const router = useRouter();
 
-    const [modalOpen, setModalOpen] = useState<'add-product' | 'add-sale' | 'add-customer' | null>(null);
+    const [modalOpen, setModalOpen] = useState<'add-product' | 'add-sale' | 'add-customer' | 'add-debtor' | null>(null);
 
     // Business Insights Calculation
     const businessInsights = useMemo(() => {
         const totalRevenue = sales.reduce((acc, sale) => acc + (typeof sale.amount === 'number' ? sale.amount : parseFloat(sale.amount) || 0), 0);
-        const totalOrders = sales.length;
+        const totalDebtorsAmount = debtors.reduce((acc, debtor) => acc + (debtor.totalDebt || 0), 0);
         const activeCustomers = customers.filter(c => c.status === 'Active').length;
         const productsInStock = products.reduce((acc, prod) => acc + (typeof prod.stock === 'number' ? prod.stock : parseInt(prod.stock) || 0), 0);
+        const totalOrders = sales.length;
         const avgSale = totalOrders > 0 ? totalRevenue / totalOrders : 0;
         const recentSales = sales.filter(s => {
             const date = new Date(s.date);
@@ -34,18 +38,18 @@ export default function Dashboard() {
         }).length;
 
         return {
-            totalRevenue,
-            totalOrders,
+            totalProductCount: products.length,
+            totalDebtorsAmount,
             activeCustomers,
             productsInStock,
             avgSale,
             recentSales
         };
-    }, [sales, products, customers]);
+    }, [sales, products, customers, debtors]);
 
     const statValues = [
-        businessInsights.totalRevenue,
-        businessInsights.totalOrders,
+        businessInsights.totalProductCount,
+        businessInsights.totalDebtorsAmount,
         businessInsights.activeCustomers,
         businessInsights.productsInStock,
         businessInsights.avgSale,
@@ -54,14 +58,14 @@ export default function Dashboard() {
 
     const stats = [
         {
-            label: "Revenue",
-            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-            link: "/sales"
+            label: "Products",
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
+            link: "/products"
         },
         {
-            label: "Orders",
-            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>,
-            link: "/sales"
+            label: "Debtors",
+            icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+            link: "/debtors"
         },
         {
             label: "Customers",
@@ -88,7 +92,7 @@ export default function Dashboard() {
     const quickActions = [
         { label: "New Sale", color: "bg-white/5 text-white/50 hover:bg-[#C5A059]/10 hover:text-white", action: "add-sale" },
         { label: "Add Customer", color: "bg-white/5 text-white/50 hover:bg-[#C5A059]/10 hover:text-white", action: "add-customer" },
-        { label: "Add Item", color: "bg-white/5 text-white/50 hover:bg-[#C5A059]/10 hover:text-white", action: "add-product" },
+        { label: "Add Debtor", color: "bg-white/5 text-white/50 hover:bg-[#C5A059]/10 hover:text-white", action: "add-debtor" },
         { label: "View Reports", color: "bg-white/5 text-white/50 hover:bg-[#C5A059]/10 hover:text-white", action: "view-reports" },
     ];
 
@@ -96,6 +100,7 @@ export default function Dashboard() {
         if (action === 'add-product') setModalOpen('add-product');
         if (action === 'add-sale') setModalOpen('add-sale');
         if (action === 'add-customer') setModalOpen('add-customer');
+        if (action === 'add-debtor') setModalOpen('add-debtor');
         if (action === 'view-reports') router.push('/reports');
         if (action === 'view-profile') router.push('/profile');
     };
@@ -166,7 +171,7 @@ export default function Dashboard() {
                                 <div className="relative z-10">
                                     <div className="text-[10px] font-black text-white/40 tracking-[0.2em] uppercase mb-1">{stat.label}</div>
                                     <div className="flex items-baseline gap-1">
-                                        {(stat.label === "Revenue" || stat.label === "Avg. Value") && (
+                                        {(stat.label === "Avg. Value" || stat.label === "Debtors") && (
                                             <span className="text-sm font-black text-[#C5A059] opacity-60">Le</span>
                                         )}
                                         <div className="text-2xl font-black text-white tracking-tighter group-hover:scale-105 origin-left transition-transform duration-300">
@@ -233,6 +238,7 @@ export default function Dashboard() {
                                 {modalOpen === 'add-product' && <AddProductModal onClose={() => setModalOpen(null)} />}
                                 {modalOpen === 'add-sale' && <AddSaleModal onClose={() => setModalOpen(null)} />}
                                 {modalOpen === 'add-customer' && <AddCustomerModal onClose={() => setModalOpen(null)} />}
+                                {modalOpen === 'add-debtor' && <AddCreditModal onClose={() => setModalOpen(null)} />}
                             </div>
                         </motion.div>
                     </div>

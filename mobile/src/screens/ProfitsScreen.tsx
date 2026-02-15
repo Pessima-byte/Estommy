@@ -4,8 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Search, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { exportToCSV } from '../utils/export';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { useSales } from '../hooks/useSales';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
 import { salesAPI } from '../api/client';

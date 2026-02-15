@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AddCreditModal } from "../../components/forms/AddCreditModal";
 import { CreditDetailsModal } from "../../components/modals/CreditDetailsModal";
 import { useSearchParams } from "next/navigation";
+import { exportToCSV } from "../../utils/csvExport";
 
 export default function CreditsPage() {
     const { credits } = useCredits();
@@ -68,6 +69,15 @@ export default function CreditsPage() {
                                 {totalOutstanding.toLocaleString()}
                             </div>
                         </div>
+                        <button
+                            className="px-6 py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[9px] font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 h-fit self-center flex items-center gap-2"
+                            onClick={() => exportToCSV(filteredCredits, 'credits')}
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Export CSV
+                        </button>
                         <button
                             className="px-6 py-3.5 rounded-full bg-white text-black text-[9px] font-black uppercase tracking-[0.2em] hover:scale-105 hover:bg-[#C5A059] transition-all shadow-xl active:scale-95 h-fit self-center"
                             onClick={() => setShowAdd(true)}

@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, Alert, Modal, RefreshControl, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { useProducts } from '../hooks/useProducts';
 import { Colors, Spacing } from '../constants/Theme';
 import { Product } from '../types';
@@ -11,6 +9,7 @@ import ProductCard from '../components/ProductCard';
 import SelectionModal from '../components/SelectionModal';
 import InventoryHero from '../components/products/InventoryHero';
 import InventoryFilters from '../components/products/InventoryFilters';
+import { exportToCSV } from '../utils/export';
 
 export default function ProductsScreen() {
     const { products, loading, refetch, deleteProduct } = useProducts();
@@ -49,9 +48,8 @@ export default function ProductsScreen() {
     const isLargePhone = width >= 500;
     const gap = Spacing.md;
     const numCols = 3;
-    // Navigation.tsx defines sidebar width as 240 for iPad Landscape (width >= 1024)
     const sidebarWidth = width >= 1024 ? 240 : 0;
-    const availableWidth = width - sidebarWidth - (Spacing.xl * 2); // Using Spacing.xl padding from container
+    const availableWidth = width - sidebarWidth - (Spacing.xl * 2);
 
     const itemWidth = (availableWidth - (gap * (numCols - 1))) / numCols;
 
@@ -82,36 +80,23 @@ export default function ProductsScreen() {
     };
 
     const handleExportCSV = async () => {
+        setExporting(true);
         try {
-            if (!products || products.length === 0) {
-                Alert.alert('Notice', 'No products available to export.');
-                return;
-            }
-            setExporting(true);
-            const header = 'ID,Name,Category,Price,CostPrice,Stock,Status\n';
-            const rows = products.map((p: Product) => {
-                const safeName = (p.name || '').replace(/"/g, '""');
-                const safeCategory = (p.category || 'General').replace(/"/g, '""');
-                return `${p.id}, "${safeName}", "${safeCategory}", ${p.price || 0},${p.costPrice || 0},${p.stock || 0}, "${p.status || 'Active'}"`;
-            }).join('\n');
-            const csvContent = header + rows;
-            const dir = (FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory;
-            if (!dir) {
-                Alert.alert('Error', 'Storage directory not found on device.');
-                return;
-            }
-            const fileName = `inventory_list_${Date.now()}.csv`;
-            const fileUri = dir.endsWith('/') ? `${dir}${fileName}` : `${dir}/${fileName}`;
-            await FileSystem.writeAsStringAsync(fileUri, csvContent);
-            if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(fileUri, {
-                    mimeType: 'text/csv',
-                    dialogTitle: 'Export Product Inventory',
-                    UTI: 'public.comma-separated-values-text'
-                });
-            }
+            await exportToCSV<Product>(
+                products,
+                [
+                    { header: 'ID', key: 'id' },
+                    { header: 'Name', key: 'name' },
+                    { header: 'Category', key: (p) => p.category || 'General' },
+                    { header: 'Price', key: 'price' },
+                    { header: 'Cost Price', key: 'costPrice' },
+                    { header: 'Stock', key: 'stock' },
+                    { header: 'Status', key: (p) => p.status || 'Active' }
+                ],
+                'ESTOMMY_Inventory',
+                'Export Product Inventory'
+            );
         } catch (error) {
-            console.error('Products Export Error:', error);
             Alert.alert('Export Failed', 'An error occurred while generating the CSV file.');
         } finally {
             setExporting(false);
@@ -230,4 +215,3 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     }
 });
-

@@ -97,7 +97,13 @@ export default function Navigation({ onLogout }: NavigationProps) {
                     </View>
 
                     <ScrollView style={styles.sidebarNav} showsVerticalScrollIndicator={false}>
-                        {NAV_ITEMS.map((item) => {
+                        {NAV_ITEMS.filter((item) => {
+                            // Hide Users and Permissions for non-admin users
+                            if (item.id === 'users' || item.id === 'permissions') {
+                                return user?.role === 'ADMIN';
+                            }
+                            return true;
+                        }).map((item) => {
                             const Icon = item.icon;
                             const isActive = activeTab === item.id;
                             return (

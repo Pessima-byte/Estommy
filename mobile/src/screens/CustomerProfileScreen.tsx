@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Modal, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Modal, Platform, Alert } from 'react-native';
 import { X, Mail, Phone, MapPin, Calendar, ShoppingBag, CreditCard, ArrowLeft, Download, ExternalLink, ChevronRight, User, Camera, Image as ImageIcon, FileText } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { customersAPI, salesAPI, creditsAPI, getImageUrl } from '../api/client';
 import { Customer, Sale } from '../types';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
+import { exportToCSV } from '../utils/export';
+import { ActivityLogger } from '../utils/activityLogger';
 
 interface CustomerProfileScreenProps {
     customerId: string;
@@ -61,6 +63,124 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
         return { totalSpent, pendingCredits, lastActivity };
     }, [sales, credits]);
 
+    const handleExportReport = async () => {
+        if (!customer) return;
+
+        try {
+            // Prepare comprehensive customer report data
+            const reportData = [
+                // Customer Summary
+                {
+                    Section: 'CUSTOMER INFORMATION',
+                    Field: 'Name',
+                    Value: customer.name || 'N/A',
+                    Details: ''
+                },
+                {
+                    Section: 'CUSTOMER INFORMATION',
+                    Field: 'Email',
+                    Value: customer.email || 'N/A',
+                    Details: ''
+                },
+                {
+                    Section: 'CUSTOMER INFORMATION',
+                    Field: 'Phone',
+                    Value: customer.phone || 'N/A',
+                    Details: ''
+                },
+                {
+                    Section: 'CUSTOMER INFORMATION',
+                    Field: 'Address',
+                    Value: customer.address || 'N/A',
+                    Details: ''
+                },
+                {
+                    Section: 'CUSTOMER INFORMATION',
+                    Field: 'Gender',
+                    Value: customer.gender || 'N/A',
+                    Details: ''
+                },
+                {
+                    Section: 'CUSTOMER INFORMATION',
+                    Field: 'Status',
+                    Value: customer.status || 'Active',
+                    Details: ''
+                },
+                {
+                    Section: 'CUSTOMER INFORMATION',
+                    Field: 'Member Since',
+                    Value: new Date(customer.createdAt).toLocaleDateString('en-GB'),
+                    Details: ''
+                },
+                // Financial Summary
+                {
+                    Section: 'FINANCIAL SUMMARY',
+                    Field: 'Total Spent',
+                    Value: `Le ${stats.totalSpent.toLocaleString()}`,
+                    Details: `${sales.length} purchases`
+                },
+                {
+                    Section: 'FINANCIAL SUMMARY',
+                    Field: 'Current Debt',
+                    Value: `Le ${(customer.totalDebt || 0).toLocaleString()}`,
+                    Details: ''
+                },
+                {
+                    Section: 'FINANCIAL SUMMARY',
+                    Field: 'Pending Credits',
+                    Value: `Le ${stats.pendingCredits.toLocaleString()}`,
+                    Details: `${credits.filter(c => c.status === 'Pending').length} pending`
+                },
+                {
+                    Section: 'FINANCIAL SUMMARY',
+                    Field: 'Last Activity',
+                    Value: stats.lastActivity,
+                    Details: ''
+                },
+                // Sales Records
+                ...sales.map((sale, index) => ({
+                    Section: 'SALES HISTORY',
+                    Field: `Sale #${index + 1}`,
+                    Value: `Le ${sale.amount.toLocaleString()}`,
+                    Details: `${new Date(sale.date).toLocaleDateString('en-GB')} - ${sale.status || 'Completed'}`
+                })),
+                // Credit Records
+                ...credits.map((credit, index) => ({
+                    Section: 'CREDIT HISTORY',
+                    Field: `Credit #${index + 1}`,
+                    Value: `Le ${credit.amount.toLocaleString()}`,
+                    Details: `Due: ${new Date(credit.dueDate).toLocaleDateString('en-GB')} - ${credit.status || 'Pending'}`
+                }))
+            ];
+
+            await exportToCSV(
+                reportData,
+                [
+                    { header: 'Section', key: 'Section' },
+                    { header: 'Field', key: 'Field' },
+                    { header: 'Value', key: 'Value' },
+                    { header: 'Details', key: 'Details' }
+                ],
+                `Customer_Report_${customer.name.replace(/\s+/g, '_')}`,
+                'Export Customer Report'
+            );
+
+            Alert.alert('Success', 'Customer report exported successfully!');
+
+            // Log the export activity
+            await ActivityLogger.log({
+                action: 'EXPORT',
+                entityType: 'CUSTOMER',
+                entityId: customer.id,
+                entityName: customer.name,
+                description: `Exported comprehensive report for customer: ${customer.name}`
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            Alert.alert('Export Failed', 'Unable to generate customer report.');
+        }
+    };
+
     if (loading || !customer) {
         return (
             <View style={styles.loadingContainer}>
@@ -69,6 +189,13 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
             </View>
         );
     }
+
+    // Log profile view
+    useEffect(() => {
+        if (customer) {
+            ActivityLogger.logView('CUSTOMER', customer.id, customer.name);
+        }
+    }, [customer]);
 
     const resolvedAvatar = (customer.avatar ? getImageUrl(customer.avatar) : null) ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&background=1a1a1a&color=fff&size=128`;
@@ -86,7 +213,7 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
                         <Text style={styles.backText}>GO BACK</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.downloadBtn}>
+                    <TouchableOpacity style={styles.downloadBtn} onPress={handleExportReport}>
                         <Download size={18} color="#C5A059" />
                         <Text style={styles.downloadText}>REPORT</Text>
                     </TouchableOpacity>

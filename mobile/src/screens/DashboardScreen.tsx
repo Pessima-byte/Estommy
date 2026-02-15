@@ -2,15 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, RefreshControl, useWindowDimensions, Modal, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ShoppingCart, Users, Package, TrendingUp, ChevronRight, Search } from 'lucide-react-native';
+import { ShoppingCart, Users, Package, TrendingUp, ChevronRight, Search, UserMinus } from 'lucide-react-native';
 import { Colors, Spacing } from '../constants/Theme';
 import { useProducts } from '../hooks/useProducts';
 import { useCustomers } from '../hooks/useCustomers';
 import { useSales } from '../hooks/useSales';
 import { useActivities } from '../hooks/useActivities';
+import { useDebtors } from '../hooks/useDebtors';
 import AddProductScreen from './AddProductScreen';
 import AddSaleScreen from './AddSaleScreen';
 import AddCustomerScreen from './AddCustomerScreen';
+import AddCreditRecordScreen from './AddCreditRecordScreen';
 import StatCard from '../components/StatCard';
 import QuickActionCard from '../components/QuickActionCard';
 import { Activity } from '../types';
@@ -23,17 +25,19 @@ export default function DashboardScreen({ onNavigate }: { onNavigate?: (tabId: s
     const { customers, loading: loadingCustomers, refetch: refetchCustomers } = useCustomers();
     const { sales, loading: loadingSales, refetch: refetchSales } = useSales();
     const { activities, loading: loadingActivities, refetch: refetchActivities } = useActivities({ limit: 3 });
+    const { debtors, loading: loadingDebtors, refetch: refetchDebtors } = useDebtors();
 
     const [activeModal, setActiveModal] = useState<string | null>(null);
 
-    const isRefreshing = loadingProducts || loadingCustomers || loadingSales;
+    const isRefreshing = loadingProducts || loadingCustomers || loadingSales || loadingDebtors;
 
     const handleRefresh = async () => {
         await Promise.all([
             refetchProducts(),
             refetchCustomers(),
             refetchSales(),
-            refetchActivities()
+            refetchActivities(),
+            refetchDebtors()
         ]);
     };
 
@@ -44,18 +48,18 @@ export default function DashboardScreen({ onNavigate }: { onNavigate?: (tabId: s
     };
 
     const statsData = useMemo(() => {
-        const totalRevenue = sales.reduce((acc, s) => acc + (s.amount || 0), 0);
-        const totalOrders = sales.length;
+        const totalProductsCount = products.length;
+        const totalDebtorsAmount = debtors.reduce((acc, d) => acc + (d.totalDebt || 0), 0);
         const totalCustomers = customers.length;
         const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0);
 
         return {
-            revenue: totalRevenue.toLocaleString(),
-            orders: totalOrders.toLocaleString(),
+            products: totalProductsCount.toLocaleString(),
+            debtors: totalDebtorsAmount.toLocaleString(),
             customers: totalCustomers.toLocaleString(),
             stock: totalStock.toLocaleString(),
         };
-    }, [products, customers, sales]);
+    }, [products, customers, sales, debtors]);
 
     const cardWidth = !isIPadLandscape ? (width - Spacing.xl * 2 - Spacing.lg) / 2 : undefined;
 
@@ -107,8 +111,8 @@ export default function DashboardScreen({ onNavigate }: { onNavigate?: (tabId: s
                         </View>
 
                         <View style={[styles.statsGrid, isIPadLandscape && { flexWrap: 'nowrap' }]}>
-                            <StatCard label="REVENUE" value={statsData.revenue} icon={TrendingUp} color={Colors.primary} flex={isIPadLandscape} width={cardWidth} />
-                            <StatCard label="ORDERS" value={statsData.orders} icon={ShoppingCart} color={Colors.primary} flex={isIPadLandscape} width={cardWidth} />
+                            <StatCard label="PRODUCTS" value={statsData.products} icon={Package} color={Colors.primary} flex={isIPadLandscape} width={cardWidth} onPress={() => handleNavigate('products')} />
+                            <StatCard label="DEBTORS" value={statsData.debtors} icon={UserMinus} color={Colors.primary} flex={isIPadLandscape} width={cardWidth} onPress={() => handleNavigate('debtors')} />
                             <StatCard label="CUSTOMERS" value={statsData.customers} icon={Users} color={Colors.primary} flex={isIPadLandscape} width={cardWidth} />
                             <StatCard label="STOCK" value={statsData.stock} icon={Package} color={Colors.primary} flex={isIPadLandscape} width={cardWidth} />
                         </View>
@@ -120,7 +124,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate?: (tabId: s
                     <View style={[styles.actionGrid, isIPadLandscape && { flexWrap: 'nowrap' }]}>
                         <QuickActionCard title="New Sale" flex={isIPadLandscape} width={cardWidth} onPress={() => setActiveModal('addSale')} />
                         <QuickActionCard title="Add Customer" flex={isIPadLandscape} width={cardWidth} onPress={() => setActiveModal('addCustomer')} />
-                        <QuickActionCard title="Add Item" flex={isIPadLandscape} width={cardWidth} onPress={() => setActiveModal('addProduct')} />
+                        <QuickActionCard title="Add Debtor" flex={isIPadLandscape} width={cardWidth} onPress={() => setActiveModal('addDebtor')} />
                         <QuickActionCard title="View Reports" flex={isIPadLandscape} width={cardWidth} onPress={() => handleNavigate('reports')} />
                     </View>
                 </View>
@@ -167,6 +171,9 @@ export default function DashboardScreen({ onNavigate }: { onNavigate?: (tabId: s
             </Modal>
             <Modal visible={activeModal === 'addCustomer'} animationType="slide">
                 <AddCustomerScreen onClose={() => setActiveModal(null)} onSuccess={() => setActiveModal(null)} />
+            </Modal>
+            <Modal visible={activeModal === 'addDebtor'} animationType="slide">
+                <AddCreditRecordScreen onClose={() => setActiveModal(null)} onSuccess={() => setActiveModal(null)} />
             </Modal>
         </SafeAreaView>
     );

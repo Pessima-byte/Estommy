@@ -10,6 +10,9 @@ import { Colors, Spacing, BorderRadius } from '../constants/Theme';
 import SettlePaymentModal from './SettlePaymentModal';
 import AddCreditRecordScreen from './AddCreditRecordScreen';
 import { getImageUrl } from '../api/client';
+import { exportToCSV } from '../utils/export';
+import { Download } from 'lucide-react-native';
+import { ActivityLogger } from '../utils/activityLogger';
 
 const DebtorCard = ({ debtor, onHistory, onSelect, lastNote, lastImage, onImagePress }: { debtor: any, onHistory: (d: any) => void, onSelect: (d: any) => void, lastNote?: string, lastImage?: string, onImagePress?: (uri: string) => void }) => {
     return (
@@ -153,6 +156,28 @@ export default function DebtorsScreen() {
         }
     };
 
+    const handleExportCSV = async () => {
+        try {
+            await exportToCSV(
+                debtors,
+                [
+                    { header: 'ID', key: 'id' },
+                    { header: 'Name', key: 'name' },
+                    { header: 'Phone', key: (d: any) => d.phone || 'N/A' },
+                    { header: 'Total Debt (LE)', key: (d: any) => d.totalDebt || 0 },
+                    { header: 'Status', key: (d: any) => (d.totalDebt > 0 ? 'Active Debt' : 'Clear') }
+                ],
+                'ESTOMMY_Debtors_List',
+                'Export Debtors Data'
+            );
+
+            // Log the export activity
+            await ActivityLogger.logExport('DEBTOR', debtors.length);
+        } catch (error) {
+            console.error('Debtors Export Error:', error);
+        }
+    };
+
     const headerComponent = useMemo(() => (
         <View>
             {/* Header */}
@@ -186,6 +211,13 @@ export default function DebtorsScreen() {
                     <ArrowUpDown size={20} color={sortBy === 'debt_desc' ? 'rgba(255,255,255,0.4)' : Colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
+                    style={styles.sortBtn}
+                    activeOpacity={0.8}
+                    onPress={handleExportCSV}
+                >
+                    <Download size={20} color={Colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
                     style={styles.addBtn}
                     activeOpacity={0.8}
                     onPress={() => setShowAdd(true)}
@@ -194,7 +226,7 @@ export default function DebtorsScreen() {
                 </TouchableOpacity>
             </View>
         </View>
-    ), [searchTerm, sortBy, totalOutstanding]);
+    ), [searchTerm, sortBy, totalOutstanding, debtors]);
 
     return (
         <SafeAreaView style={styles.container}>

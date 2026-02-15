@@ -2,8 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, TouchableOpacity, TextInput, Alert, Modal, RefreshControl, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { exportToCSV } from '../utils/export';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { Search, ChevronDown, Plus, X, ArrowUpDown, Clock, Filter } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCustomers } from '../hooks/useCustomers';

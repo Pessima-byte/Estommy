@@ -1,0 +1,41 @@
+name: Daily Automatic Backup
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC (adjust as needed)
+    - cron: '0 2 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Automatic Backup
+        run: |
+          response=$(curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            ${{ secrets.APP_URL }}/api/backup/auto)
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "Backup failed with HTTP code: $http_code"
+            exit 1
+          fi
+          
+          echo "Backup completed successfully"
+      
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "Automatic backup failed!"
+          # Add notification logic here (e.g., send email, Slack message, etc.)
