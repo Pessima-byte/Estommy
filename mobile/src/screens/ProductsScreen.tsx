@@ -50,7 +50,7 @@ export default function ProductsScreen() {
     const isDesktop = width >= 1024;
     const isLargePhone = width >= 500;
     const gap = Spacing.md;
-    const numCols = isDesktop ? 4 : isTablet ? 3 : isLargePhone ? 2 : 1;
+    const numCols = isDesktop || isTablet ? 3 : isLargePhone ? 2 : 2;
     const sidebarWidth = width >= 1024 ? 240 : 0;
     const availableWidth = width - sidebarWidth - (Spacing.xl * 2);
 
