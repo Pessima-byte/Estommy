@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ActivityIndicator, useWindowDimensions, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, useWindowDimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 import { Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 import { Colors } from '../constants/Theme';
 import { authAPI } from '../api/client';
@@ -69,8 +70,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
                             {/* Logo Section */}
                             <View style={styles.headerSection}>
-                                <View style={styles.logoContainer}>
-                                    <Image source={LOGO_IMAGE} style={styles.logo} resizeMode="contain" />
+                                <View style={styles.sidebarLogoWrapper}>
+                                    <View style={styles.logoPill}>
+                                        <Image
+                                            source={LOGO_IMAGE}
+                                            style={styles.sidebarLogo}
+                                            contentFit="cover"
+                                        />
+                                    </View>
                                 </View>
                                 <Text style={styles.welcomeText}>Welcome Back</Text>
                                 <Text style={styles.subText}>Sign in to continue to ESTOMMY</Text>
@@ -202,21 +209,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 40,
     },
-    logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 24,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+    sidebarLogoWrapper: {
+        width: 240, // Match sidebar width
+        padding: 15,
+        marginBottom: 10,
+    },
+    logoPill: {
+        width: '100%',
+        aspectRatio: 2.4,
+        borderRadius: 60,
+        overflow: 'hidden',
+        backgroundColor: '#E5E7EB',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255,255,255,0.2)',
     },
-    logo: {
-        width: 50,
-        height: 50,
-        borderRadius: 12,
+    sidebarLogo: {
+        width: '100%',
+        height: '100%',
     },
     welcomeText: {
         fontSize: 28,
