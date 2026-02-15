@@ -4,13 +4,30 @@ import bcrypt from 'bcryptjs';
 import { signJwt } from '@/lib/jwt';
 import { UserRole } from '@/lib/roles';
 
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 204,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
+        },
+    });
+}
+
 export async function POST(request: NextRequest) {
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
+    };
+
     try {
         const body = await request.json();
         const { email, password } = body;
 
         if (!email || !password) {
-            return NextResponse.json({ error: 'Missing credentials' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing credentials' }, { status: 400, headers: corsHeaders });
         }
 
         const user = await prisma.user.findUnique({
@@ -18,7 +35,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!user || !user.password) {
-            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401, headers: corsHeaders });
         }
 
         const isValid = user.password.startsWith('$2')
@@ -26,11 +43,11 @@ export async function POST(request: NextRequest) {
             : password.length >= 6 && password === user.password; // Fallback for seeds
 
         if (!isValid) {
-            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401, headers: corsHeaders });
         }
 
         if (!user.isActive) {
-            return NextResponse.json({ error: 'Account disabled' }, { status: 403 });
+            return NextResponse.json({ error: 'Account disabled' }, { status: 403, headers: corsHeaders });
         }
 
         const token = signJwt({
@@ -48,10 +65,10 @@ export async function POST(request: NextRequest) {
                 name: user.name,
                 role: user.role,
             }
-        });
+        }, { headers: corsHeaders });
 
     } catch (error) {
         console.error('Mobile login error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: corsHeaders });
     }
 }
