@@ -26,14 +26,21 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const { width } = useWindowDimensions();
     const isIPad = width >= 768;
 
-    // Google Auth Request Configuration
-    // We request an ID Token to match the backend validation logic
+    // Google Auth Request Configuration for Expo Go
+    // In Expo Go, we MUST use the Web Client ID for authentication to avoid "400" Errors
+    // because Native Client IDs (iOS/Android) require custom URL schemes not available in the Go app.
+
+    // Configure Redirect URI for Expo Go Proxy
+    const redirectUri = makeRedirectUri();
+
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+        // Remove native client IDs for Expo Go (development)
+        // iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        // androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         scopes: ['profile', 'email'],
         responseType: ResponseType.IdToken,
+        redirectUri,
     });
 
     React.useEffect(() => {
@@ -45,7 +52,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     React.useEffect(() => {
         if (response?.type === 'success') {
             const { authentication, params } = response;
-            // With ResponseType.IdToken, the token is in params.id_token
+            // The token location depends on the flow. Check params first for implicit flow.
             const token = params?.id_token || authentication?.idToken || authentication?.accessToken || '';
             handleSocialAuth('google', token);
         } else if (response?.type === 'error') {
