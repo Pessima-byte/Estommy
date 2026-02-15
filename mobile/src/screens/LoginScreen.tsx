@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, useWindowDimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,38 +27,40 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const isIPad = width >= 768;
 
     // Google Auth Configuration
-    // We force a constant HTTPS URI to ensure Google accepts it in Expo Go
-    const proxyRedirectUri = 'https://auth.expo.io/@anonymous/mobile';
+    // We use the standard Expo Go way: useProxy: true
+    const googleConfig = useMemo(() => {
+        const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '1038925777246-khpoodk9e8e49tdcb2omt44clqjeb6qv.apps.googleusercontent.com';
+        return {
+            webClientId: clientId,
+            iosClientId: clientId,
+            androidClientId: clientId,
+            scopes: ['profile', 'email'],
+            responseType: ResponseType.IdToken,
+        };
+    }, []);
 
-    const [request, response, promptAsync] = Google.useAuthRequest({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-        scopes: ['profile', 'email'],
-        responseType: ResponseType.IdToken,
-        redirectUri: proxyRedirectUri,
-    });
+    const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (request) {
             console.log('------------------------------------');
-            console.log('FINAL GOOGLE AUTH SETUP:');
-            console.log('1. Go to Google Cloud Console');
-            console.log('2. Add this EXACT URI to "Authorized redirect URIs":');
-            console.log('   https://auth.expo.io/@anonymous/mobile');
+            console.log('GOOGLE AUTH DEBUG:');
+            console.log('Web Client ID:', googleConfig.webClientId);
+            console.log('Redirect URI:', request.redirectUri);
             console.log('------------------------------------');
         }
-    }, [request]);
+    }, [request, googleConfig]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (response?.type === 'success') {
             const { authentication, params } = response;
-            // The token is in params.id_token when using ResponseType.IdToken
             const token = params?.id_token || authentication?.idToken || authentication?.accessToken || '';
             handleSocialAuth('google', token);
         } else if (response?.type === 'error') {
             console.error('[Google Auth] Response Error:', response.error);
             showToast('Google Sign-In failed', 'error');
+        } else if (response?.type === 'cancel') {
+            console.log('[Google Auth] User Cancelled');
         }
     }, [response]);
 
@@ -87,19 +89,16 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     };
 
     const handleGoogleLogin = () => {
-        const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-        if (!webClientId || webClientId.includes('your_web_client_id')) {
-            showToast('Google Sign-In not configured. Check .env', 'error');
-            return;
-        }
-
         if (!request) {
             showToast('Google Sign-In initializing...', 'info');
             return;
         }
 
-        // Force the modern proxy flag for Expo Go
-        promptAsync({ proxy: true } as any);
+        // Use standard prompt with proxy for Expo Go
+        promptAsync({ useProxy: true } as any).catch(err => {
+            console.error('[Google Auth] Prompt Error:', err);
+            showToast('Could not open login window', 'error');
+        });
     };
 
     const handleGithubLogin = async () => {
