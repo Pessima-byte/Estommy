@@ -210,7 +210,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                                 {/* Social Login Buttons */}
                                 <View style={styles.socialButtonsGroup}>
                                     <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-                                        <Chrome size={20} color="#CBD5E1" />
+                                        <Image
+                                            source={{ uri: "https://img.icons8.com/color/48/google-logo.png" }}
+                                            style={{ width: 24, height: 24 }}
+                                            contentFit="contain"
+                                        />
                                     </TouchableOpacity>
                                     <TouchableOpacity style={styles.socialButton} onPress={handleGithubLogin}>
                                         <Github size={20} color="#CBD5E1" />
