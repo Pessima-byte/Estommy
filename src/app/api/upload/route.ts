@@ -41,8 +41,21 @@ export async function POST(request: NextRequest) {
     const extension = originalName.split('.').pop();
     const filename = `${timestamp}-${randomString}.${extension}`;
 
-    // Upload to Supabase Storage
+    // Ensure BUCKET exists before uploading
     const BUCKET_NAME = 'uploads';
+    const { data: buckets, error: bucketCheckError } = await supabase.storage.listBuckets();
+
+    if (!bucketCheckError) {
+      const exists = buckets.find(b => b.name === BUCKET_NAME);
+      if (!exists) {
+        await supabase.storage.createBucket(BUCKET_NAME, {
+          public: true,
+          fileSizeLimit: 10485760, // 10MB
+        });
+      }
+    }
+
+    // Upload to Supabase Storage
     const { data, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filename, buffer, {
