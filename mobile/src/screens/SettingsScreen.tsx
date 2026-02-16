@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Modal, Switch, useWindowDimensions, Alert, Linking, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { User, LogOut, Bell, Shield, Moon, ChevronRight, HardDrive, HelpCircle, Info, ExternalLink, X, Camera } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -9,6 +11,7 @@ import { authAPI, getBaseURL, setBaseURL } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { useProfile } from '../hooks/useProfile';
 import EditProfileModal from './EditProfileModal';
+import { BIOMETRICS_ENABLED_KEY } from '../components/SecurityWrapper';
 
 interface SettingsScreenProps {
     onLogout: () => void;
@@ -24,6 +27,42 @@ export default function SettingsScreen({ onLogout }: SettingsScreenProps) {
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [isEditingNetwork, setIsEditingNetwork] = useState(false);
     const [tempBaseURL, setTempBaseURL] = useState('');
+
+    React.useEffect(() => {
+        const loadBiometrics = async () => {
+            const isEnabled = await SecureStore.getItemAsync(BIOMETRICS_ENABLED_KEY);
+            setBiometrics(isEnabled === 'true');
+        };
+        loadBiometrics();
+    }, []);
+
+    const handleToggleBiometrics = async (value: boolean) => {
+        if (value) {
+            // Check if device supports biometrics
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+            if (!hasHardware || !isEnrolled) {
+                showToast('Biometrics not available or not enrolled on this device.', 'error');
+                return;
+            }
+
+            // Verify with biometrics before enabling
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Authenticate to enable biometric access',
+            });
+
+            if (result.success) {
+                await SecureStore.setItemAsync(BIOMETRICS_ENABLED_KEY, 'true');
+                setBiometrics(true);
+                showToast('Biometric access enabled.', 'success');
+            }
+        } else {
+            await SecureStore.setItemAsync(BIOMETRICS_ENABLED_KEY, 'false');
+            setBiometrics(false);
+            showToast('Biometric access disabled.', 'info');
+        }
+    };
 
     const handleOpenNetwork = async () => {
         const current = await getBaseURL();
@@ -199,7 +238,7 @@ export default function SettingsScreen({ onLogout }: SettingsScreenProps) {
                         </View>
                         <Switch
                             value={biometrics}
-                            onValueChange={setBiometrics}
+                            onValueChange={handleToggleBiometrics}
                             trackColor={{ false: '#1E293B', true: Colors.primary }}
                             thumbColor="#FFF"
                         />

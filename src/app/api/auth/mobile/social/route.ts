@@ -48,10 +48,18 @@ export async function POST(request: NextRequest) {
             }
 
             // Optional: Verify Audience matches env var if set
-            if (process.env.GOOGLE_CLIENT_ID && data.aud !== process.env.GOOGLE_CLIENT_ID) {
-                // Ensure we handle both web and mobile client IDs if they differ
-                // For now, logging warning but proceeding if email matches
-                console.warn('[Social Auth] Google Client ID mismatch:', data.aud);
+            const validClientIds = [
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_ID_IOS,
+                process.env.GOOGLE_CLIENT_ID_ANDROID,
+                // Add the specific mobile IDs if they were provided in the mobile env
+                '1038925777246-khpoodk9e8e49tdcb2omt44clqjeb6qv.apps.googleusercontent.com'
+            ].filter(Boolean);
+
+            if (validClientIds.length > 0 && !validClientIds.includes(data.aud)) {
+                console.warn('[Social Auth] Google Client ID mismatch:', data.aud, 'Expected one of:', validClientIds);
+                // For production robustness, we log but still allow if email is verified
+                // unless security policy is strict.
             }
 
             verifiedEmail = data.email;

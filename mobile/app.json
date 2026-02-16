@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Estommy",
+    "slug": "estommy-mobile",
     "scheme": "estommy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,12 +10,27 @@
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "cover",
+      "backgroundColor": "#020617"
     },
+    "facebookAppId": "YOUR_FB_APP_ID",
+    "facebookDisplayName": "Estommy",
+    "facebookScheme": "fbYOUR_FB_APP_ID",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.estommy.mobile"
+      "bundleIdentifier": "com.estommy.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Allow Estommy to use FaceID for secure access to your inventory data."
+      },
+      "bundleURLTypes": [
+        {
+          "CFBundleURLSchemes": [
+            "com.googleusercontent.apps.1038925777246-fr9728gqn44na5ovdfifmefokmpfe4s5",
+            "fbYOUR_FB_APP_ID"
+          ]
+        }
+      ]
     },
     "android": {
       "package": "com.estommy.mobile",
@@ -24,7 +39,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,7 +55,13 @@
           "photosPermission": "The app accesses your photos successfully to let you share them with your friends."
         }
       ],
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-local-authentication"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "684d1379-0d04-4b7d-a511-f8413460f516"
+      }
+    }
   }
 }

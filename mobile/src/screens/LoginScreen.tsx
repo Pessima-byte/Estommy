@@ -11,7 +11,9 @@ import * as SecureStore from 'expo-secure-store';
 import { useToast } from '../hooks/useToast';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import * as FacebookProvider from 'expo-auth-session/providers/facebook';
 import { makeRedirectUri, ResponseType } from 'expo-auth-session';
+import Constants from 'expo-constants';
 
 const LOGO_IMAGE = require('../../assets/images/logo.jpg');
 
@@ -27,35 +29,33 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const isIPad = width >= 768;
 
     // Google Auth Configuration
-    // We use the standard Expo Go way: useProxy: true
-    const googleConfig = useMemo(() => {
-        const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '1038925777246-khpoodk9e8e49tdcb2omt44clqjeb6qv.apps.googleusercontent.com';
-        return {
-            webClientId: clientId,
-            iosClientId: clientId,
-            androidClientId: clientId,
-            scopes: ['profile', 'email'],
-            responseType: ResponseType.IdToken,
-        };
-    }, []);
+    const googleConfig = useMemo(() => ({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+        scopes: ['openid', 'profile', 'email'],
+    }), []);
 
     const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
 
     useEffect(() => {
         if (request) {
-            console.log('------------------------------------');
-            console.log('GOOGLE AUTH DEBUG:');
-            console.log('Web Client ID:', googleConfig.webClientId);
-            console.log('Redirect URI:', request.redirectUri);
-            console.log('------------------------------------');
+            console.log('[Google Auth] Initialized with Redirect URI:', request.redirectUri);
         }
-    }, [request, googleConfig]);
+    }, [request]);
 
     useEffect(() => {
         if (response?.type === 'success') {
             const { authentication, params } = response;
-            const token = params?.id_token || authentication?.idToken || authentication?.accessToken || '';
-            handleSocialAuth('google', token);
+            // Get token from either idToken (standard) or params (some platforms)
+            const token = params?.id_token || authentication?.idToken || '';
+
+            if (token) {
+                handleSocialAuth('google', token);
+            } else {
+                console.error('[Google Auth] No ID Token found in response');
+                showToast('Authentication failed: No token received', 'error');
+            }
         } else if (response?.type === 'error') {
             console.error('[Google Auth] Response Error:', response.error);
             showToast('Google Sign-In failed', 'error');
@@ -88,14 +88,45 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         }
     };
 
+    // Facebook Auth Configuration
+    // We use a fallback ID to prevent hook crashes if the env var is missing during development
+    const fbConfig = useMemo(() => ({
+        clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || '0000000000000000',
+        scopes: ['public_profile', 'email'],
+    }), []);
+
+    const [fbRequest, fbResponse, fbPromptAsync] = FacebookProvider.useAuthRequest(fbConfig);
+
+    useEffect(() => {
+        if (fbResponse?.type === 'success') {
+            const { authentication } = fbResponse;
+            const token = authentication?.accessToken;
+            if (token) {
+                handleSocialAuth('facebook', token);
+            } else {
+                showToast('Facebook login failed: No access token', 'error');
+            }
+        } else if (fbResponse?.type === 'error') {
+            console.error('[Facebook Auth] Error:', fbResponse.error);
+            showToast('Facebook login failed', 'error');
+        }
+    }, [fbResponse]);
+
     const handleGoogleLogin = () => {
         if (!request) {
             showToast('Google Sign-In initializing...', 'info');
             return;
         }
 
-        // Use standard prompt with proxy for Expo Go
-        promptAsync({ useProxy: true } as any).catch(err => {
+        // Use custom redirect URI for standalone apps
+        // If we're in Expo Go, proxy: true is needed unless scheme is set
+        // In production (standalone), we use the native redirect
+        const isStandalone = Constants.appOwnership !== 'expo';
+
+        promptAsync({
+            // Only use proxy in Expo Go
+            proxy: !isStandalone,
+        } as any).catch(err => {
             console.error('[Google Auth] Prompt Error:', err);
             showToast('Could not open login window', 'error');
         });
@@ -106,7 +137,24 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     };
 
     const handleFacebookLogin = async () => {
-        showToast('Facebook Login: Configure Client ID in LoginScreen.tsx', 'info');
+        if (!process.env.EXPO_PUBLIC_FACEBOOK_APP_ID) {
+            showToast('Facebook App ID not configured', 'error');
+            return;
+        }
+
+        if (!fbRequest) {
+            showToast('Facebook Sign-In initializing...', 'info');
+            return;
+        }
+
+        const isStandalone = Constants.appOwnership !== 'expo';
+
+        fbPromptAsync({
+            proxy: !isStandalone,
+        } as any).catch(err => {
+            console.error('[Facebook Auth] Prompt Error:', err);
+            showToast('Could not open login window', 'error');
+        });
     };
 
     const handleLogin = async () => {

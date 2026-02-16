@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import Navigation from './src/components/Navigation';
 import LoginScreen from './src/screens/LoginScreen';
+import SecurityWrapper from './src/components/SecurityWrapper';
 import { Colors } from './src/constants/Theme';
 import { ToastProvider } from './src/hooks/useToast';
 
@@ -69,7 +70,9 @@ export default function App() {
           <View style={styles.container}>
             <StatusBar style="light" />
             {isAuthenticated ? (
-              <Navigation onLogout={handleLogout} />
+              <SecurityWrapper isAuthenticated={isAuthenticated}>
+                <Navigation onLogout={handleLogout} />
+              </SecurityWrapper>
             ) : (
               <LoginScreen onLogin={() => setIsAuthenticated(true)} />
             )}
