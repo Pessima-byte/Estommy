@@ -65,7 +65,6 @@ const SelectionModal = ({
                                 placeholderTextColor="#64748B"
                                 value={searchQuery}
                                 onChangeText={onSearchChange}
-                                autoFocus
                             />
                         </View>
 

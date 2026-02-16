@@ -87,18 +87,6 @@ export default function SalesScreen() {
     const totalRevenue = sales.reduce((sum: number, sale: Sale) => sum + (sale.amount || 0), 0);
     const netProfit = totalRevenue;
 
-    if (isAdding) {
-        return (
-            <AddSaleScreen
-                onClose={() => setIsAdding(false)}
-                onSuccess={() => {
-                    setIsAdding(false);
-                    refetch();
-                }}
-            />
-        );
-    }
-
     const headerComponent = useMemo(() => (
         <View>
             <LinearGradient
@@ -162,6 +150,18 @@ export default function SalesScreen() {
             </View>
         </View>
     ), [totalRevenue, netProfit, exporting, searchQuery]);
+
+    if (isAdding) {
+        return (
+            <AddSaleScreen
+                onClose={() => setIsAdding(false)}
+                onSuccess={() => {
+                    setIsAdding(false);
+                    refetch();
+                }}
+            />
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
