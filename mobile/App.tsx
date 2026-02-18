@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { deactivateKeepAwake } from 'expo-keep-awake';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import Navigation from './src/components/Navigation';
@@ -8,45 +9,107 @@ import { Colors } from './src/constants/Theme';
 import { ToastProvider } from './src/hooks/useToast';
 
 import { authAPI } from './src/api/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, MutationCache, onlineManager } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import * as FileSystem from 'expo-file-system/legacy';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+// Sync React Query's online state with a manual check to avoid native module issues
+onlineManager.setEventListener((setOnline: (online: boolean) => void) => {
+  const check = async () => {
+    try {
+      await fetch('https://www.google.com', { mode: 'no-cors' });
+      setOnline(true);
+    } catch (e) {
+      setOnline(false);
+    }
+  };
+
+  const interval = setInterval(check, 10000);
+  check();
+
+  return () => clearInterval(interval);
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: 2,
       refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 60 * 24,
+      gcTime: 1000 * 60 * 60 * 24,
     },
+    mutations: {
+      retry: 10,
+      retryDelay: (attempt: number) => Math.min(attempt * 1000, 30000),
+      networkMode: 'online',
+    }
   },
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    }
+  })
 });
 
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+const CACHE_FILE = FileSystem.documentDirectory + 'estommy_offline_v7.json';
+const legacyPersister = {
+  persistClient: async (client: any) => {
+    try {
+      await FileSystem.writeAsStringAsync(CACHE_FILE, JSON.stringify(client));
+    } catch (e) { }
+  },
+  restoreClient: async () => {
+    try {
+      const info = await FileSystem.getInfoAsync(CACHE_FILE);
+      if (info.exists) {
+        const content = await FileSystem.readAsStringAsync(CACHE_FILE);
+        return JSON.parse(content);
+      }
+    } catch (e) { }
+    return undefined;
+  },
+  removeClient: async () => {
+    try {
+      await FileSystem.deleteAsync(CACHE_FILE, { idempotent: true });
+    } catch (e) { }
+  },
+};
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const prepare = useCallback(async () => {
     try {
       const token = await authAPI.getToken();
       if (token) {
-        // Log in by validating the token against the backend
         try {
-          await authAPI.validateToken();
+          // Check session with a short timeout
+          await Promise.race([
+            authAPI.validateToken(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+          ]);
           setIsAuthenticated(true);
-        } catch (error) {
-          console.log('Token validation failed, clearing session');
-          await authAPI.logout();
+        } catch (error: any) {
+          if (error.response?.status === 401) {
+            await authAPI.logout();
+            setIsAuthenticated(false);
+          } else {
+            console.log('App: Proceeding in offline mode');
+            setIsAuthenticated(true);
+          }
         }
       }
     } catch (e) {
-      console.warn('Initialization Error:', e);
+      console.warn(e);
     } finally {
-      // Ensure splash shown for at least 800ms for branding
-      setTimeout(() => setReady(true), 800);
+      setReady(true);
     }
   }, []);
 
   useEffect(() => {
+    deactivateKeepAwake();
     prepare();
   }, [prepare]);
 
@@ -65,20 +128,33 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <View style={styles.container}>
-            <StatusBar style="light" />
-            {isAuthenticated ? (
-              <SecurityWrapper isAuthenticated={isAuthenticated}>
-                <Navigation onLogout={handleLogout} />
-              </SecurityWrapper>
-            ) : (
-              <LoginScreen onLogin={() => setIsAuthenticated(true)} />
-            )}
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: legacyPersister,
+          maxAge: 1000 * 60 * 60 * 24,
+        }}
+        onSuccess={() => setIsHydrated(true)}
+      >
+        {!isHydrated ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        </ToastProvider>
-      </QueryClientProvider>
+        ) : (
+          <ToastProvider>
+            <View style={styles.container}>
+              <StatusBar style="light" />
+              {isAuthenticated ? (
+                <SecurityWrapper isAuthenticated={isAuthenticated}>
+                  <Navigation onLogout={handleLogout} />
+                </SecurityWrapper>
+              ) : (
+                <LoginScreen onLogin={() => setIsAuthenticated(true)} />
+              )}
+            </View>
+          </ToastProvider>
+        )}
+      </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }
@@ -95,4 +171,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-

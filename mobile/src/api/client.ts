@@ -1,11 +1,12 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { Product, Customer, Sale, Category, Activity, User, LoginCredentials } from '../types';
 
-const DEFAULT_IP = process.env.EXPO_PUBLIC_API_IP || '192.168.1.69';
-export const API_BASE_URL_DEFAULT = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:3030/api' : `http://${DEFAULT_IP}:3030/api`);
+const DEFAULT_IP = process.env.EXPO_PUBLIC_API_IP || '192.168.1.71';
+// Fallback to Vercel if env var is missing/empty, otherwise use env var
+export const API_BASE_URL_DEFAULT = process.env.EXPO_PUBLIC_API_URL || 'https://estommy.vercel.app/api';
 
 let authToken: string | null = null;
 
@@ -17,13 +18,18 @@ const api: AxiosInstance = axios.create({
     },
 });
 
+let cachedBaseUrl: string | null = null;
+
 export const getBaseURL = async () => {
+    if (cachedBaseUrl) return cachedBaseUrl;
     const saved = await SecureStore.getItemAsync('api_base_url');
-    return saved || API_BASE_URL_DEFAULT;
+    cachedBaseUrl = saved || API_BASE_URL_DEFAULT;
+    return cachedBaseUrl;
 };
 
 export const setBaseURL = async (url: string) => {
     await SecureStore.setItemAsync('api_base_url', url);
+    cachedBaseUrl = url;
     api.defaults.baseURL = url;
 };
 
@@ -31,12 +37,12 @@ export const setBaseURL = async (url: string) => {
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     // If baseURL is not set (e.g. initial load), try to get it
     if (!config.baseURL || config.baseURL === API_BASE_URL_DEFAULT) {
-        config.baseURL = await getBaseURL();
+        config.baseURL = (await getBaseURL()) || undefined;
     }
-    console.log('[API] Using BaseURL:', config.baseURL);
+
 
     if (!authToken) {
-        authToken = await SecureStore.getItemAsync('auth_token');
+        authToken = (await SecureStore.getItemAsync('auth_token')) || null;
     }
 
     if (authToken) {
@@ -108,14 +114,11 @@ export const filesAPI = {
         const uploadUrl = `${currentBase}/upload`;
         const token = await authAPI.getToken();
 
-        console.log('[API] FileSystem Uploading:', {
-            uri: uri.slice(0, 50) + '...',
-            to: uploadUrl
-        });
+
 
         const response = await FileSystem.uploadAsync(uploadUrl, uri, {
             httpMethod: 'POST',
-            uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+            uploadType: 1 as any, // FileSystemUploadType.MULTIPART
             fieldName: 'file',
             headers: {
                 'Accept': 'application/json',

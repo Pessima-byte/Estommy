@@ -37,7 +37,11 @@ export async function GET(request: NextRequest) {
     // Given the frontend expects sales[i].customer to be a name string, I should map it or update frontend.
     // Let's update frontend types instead.
 
-    return NextResponse.json(sales);
+    return NextResponse.json(sales, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
   } catch (error) {
     console.error('Error fetching sales:', error);
     return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 });
@@ -123,7 +127,12 @@ export async function POST(request: NextRequest) {
       return newSale;
     });
 
-    return NextResponse.json(sale, { status: 201 });
+    return NextResponse.json(sale, {
+      status: 201,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
   } catch (error: any) {
     console.error('Error creating sale:', error);
     return NextResponse.json({

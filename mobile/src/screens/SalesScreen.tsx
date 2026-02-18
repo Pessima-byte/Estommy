@@ -18,11 +18,11 @@ export default function SalesScreen() {
     const [exporting, setExporting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredSales = sales.filter((s: Sale) =>
+    const filteredSales = useMemo(() => sales.filter((s: Sale) =>
         s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.customer?.name || 'Walk-in').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.items || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ), [sales, searchQuery]);
 
     const handleDelete = (id: string) => {
         Alert.alert(
@@ -194,6 +194,10 @@ export default function SalesScreen() {
                     </View>
                 }
                 ListFooterComponent={<View style={{ height: 100 }} />}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={5}
+                windowSize={10}
+                initialNumToRender={8}
             />
         </SafeAreaView>
     );

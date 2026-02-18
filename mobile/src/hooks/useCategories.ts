@@ -5,7 +5,6 @@ export function useCategories() {
     const { data: categories = [], isLoading: loading, error, refetch } = useQuery({
         queryKey: ['categories'],
         queryFn: () => categoriesAPI.getAll(),
-        refetchInterval: 3000, // Sync every 3 seconds
     });
 
     return {

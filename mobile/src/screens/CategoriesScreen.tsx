@@ -5,11 +5,13 @@ import { Search, Menu, Trash2, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCategories } from '../hooks/useCategories';
 import { categoriesAPI } from '../api/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
 import AddCategoryScreen from './AddCategoryScreen';
 import { useToast } from '../hooks/useToast';
+import { useProfile } from '../hooks/useProfile';
 
-const CategoryCard = ({ item, index, width, onEdit, onDelete }: { item: any, index: number, width: number, onEdit: (c: any) => void, onDelete: (id: string) => void }) => {
+const CategoryCard = ({ item, index, width, onEdit, onDelete, canEdit, canDelete }: { item: any, index: number, width: number, onEdit: (c: any) => void, onDelete: (id: string) => void, canEdit: boolean, canDelete: boolean }) => {
     const isGold = index % 2 !== 0; // Alternate styles like in the screenshot
     const nodeId = item.id ? `#${item.id.slice(0, 6).toUpperCase()}` : '#XD9NZG';
 
@@ -43,20 +45,24 @@ const CategoryCard = ({ item, index, width, onEdit, onDelete }: { item: any, ind
 
             {/* Actions */}
             <View style={styles.actionRow}>
-                <TouchableOpacity
-                    style={styles.modifyBtn}
-                    onPress={() => onEdit(item)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <Text style={styles.modifyBtnText}>MODIFY MAP</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => onDelete(item.id)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <Trash2 size={18} color="#64748B" />
-                </TouchableOpacity>
+                {canEdit && (
+                    <TouchableOpacity
+                        style={styles.modifyBtn}
+                        onPress={() => onEdit(item)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Text style={styles.modifyBtnText}>MODIFY MAP</Text>
+                    </TouchableOpacity>
+                )}
+                {canDelete && (
+                    <TouchableOpacity
+                        style={styles.deleteBtn}
+                        onPress={() => onDelete(item.id)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Trash2 size={18} color="#64748B" />
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );
@@ -64,18 +70,93 @@ const CategoryCard = ({ item, index, width, onEdit, onDelete }: { item: any, ind
 
 export default function CategoriesScreen() {
     const { categories, loading, refetch } = useCategories();
+    const { user } = useProfile();
     const { showToast } = useToast();
     const { width } = useWindowDimensions();
     const [isAdding, setIsAdding] = useState(false);
     const [editCategory, setEditCategory] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Check permissions (ADMIN and MANAGER can edit/delete)
+    const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+    const canDelete = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+    const canCreate = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+
     const handleEdit = (category: any) => {
         setEditCategory(category);
         setIsAdding(true);
     };
 
+    const queryClient = useQueryClient();
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => categoriesAPI.delete(id),
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['categories'] });
+            const previousCategories = queryClient.getQueryData(['categories']);
+
+            // Optimistically remove
+            queryClient.setQueryData(['categories'], (old: any[] = []) =>
+                old.filter(c => c.id !== id)
+            );
+
+            return { previousCategories };
+        },
+        onError: (err: any, id, context: any) => {
+            console.log('Mobile Delete Error:', err);
+            queryClient.setQueryData(['categories'], context.previousCategories);
+
+            let message = 'Failed to delete category. Please check your connection.';
+            let title = 'Deletion Failed';
+
+            if (err.response) {
+                // Server responded
+                const data = err.response.data;
+                console.log('Error Data:', data);
+
+                if (data?.error) {
+                    message = data.error;
+                } else if (data?.message) {
+                    message = data.message;
+                } else if (typeof data === 'string') {
+                    // Possible HTML error page or raw string
+                    message = data.length > 200 ? 'Server returned an invalid response.' : data;
+                }
+
+                // If it's a 400 or 403, it's likely a logic block (Safety Lock) or permission
+                if (err.response.status === 400 || err.response.status === 403) {
+                    title = 'Action Blocked';
+                }
+            } else if (err.message) {
+                // Network or client error
+                message = err.message;
+            }
+
+            Alert.alert(
+                title,
+                message,
+                [{ text: 'OK' }]
+            );
+        },
+        onSuccess: () => {
+            showToast('Category node purged', 'success');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+        }
+    });
+
     const handleDelete = (id: string) => {
+        if (!id) {
+            showToast('Invalid category reference.', 'error');
+            return;
+        }
+
+        if (deleteMutation.isPending) {
+            showToast('Deletion in progress...', 'info');
+            return;
+        }
+
         Alert.alert(
             'Confirm Removal',
             'Are you sure you want to remove this category node? This action cannot be undone.',
@@ -84,16 +165,7 @@ export default function CategoriesScreen() {
                 {
                     text: 'Delete',
                     style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await categoriesAPI.delete(id);
-                            showToast('Category node removed', 'success');
-                            refetch();
-                        } catch (error: any) {
-                            const message = error.response?.data?.error || 'Failed to delete category.';
-                            showToast(message, 'error');
-                        }
-                    }
+                    onPress: () => deleteMutation.mutate(id)
                 }
             ]
         );
@@ -170,12 +242,14 @@ export default function CategoriesScreen() {
                             </Text>
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.addBtn}
-                            onPress={() => setIsAdding(true)}
-                        >
-                            <Text style={styles.addBtnText}>ADD CATEGORY</Text>
-                        </TouchableOpacity>
+                        {canCreate && (
+                            <TouchableOpacity
+                                style={styles.addBtn}
+                                onPress={() => setIsAdding(true)}
+                            >
+                                <Text style={styles.addBtnText}>ADD CATEGORY</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </LinearGradient>
 
@@ -191,7 +265,6 @@ export default function CategoriesScreen() {
                     />
                 </View>
 
-                {/* Categories Grid */}
                 <View style={[styles.grid, { gap }]}>
                     {filteredCategories.map((item, index) => (
                         <CategoryCard
@@ -201,6 +274,8 @@ export default function CategoriesScreen() {
                             width={itemWidth}
                             onEdit={handleEdit}
                             onDelete={handleDelete}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
                         />
                     ))}
                 </View>

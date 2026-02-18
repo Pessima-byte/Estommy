@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, useWindowDimensions, Alert, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { LayoutGrid, Package, Tags, Users, ShoppingCart, Database, CreditCard, UserMinus, TrendingUp, BarChart3, ShieldCheck, Search, Settings } from 'lucide-react-native';
 import DashboardScreen from '../screens/DashboardScreen';
@@ -48,12 +48,51 @@ interface NavigationProps {
     onLogout: () => void;
 }
 
+import { useMutationState, useIsFetching } from '@tanstack/react-query';
+
 export default function Navigation({ onLogout }: NavigationProps) {
     const { width } = useWindowDimensions();
     const isIPadLandscape = width >= 1024;
     const [activeTab, setActiveTab] = useState('dashboard');
     const [searchVisible, setSearchVisible] = useState(false);
     const { user } = useProfile();
+
+    // Monitor background syncs
+    const isFetching = useIsFetching();
+    const isMutating = useMutationState({
+        filters: { status: 'pending' },
+        select: (mutation) => mutation.state.status,
+    }).length > 0;
+
+    const [isOffline, setIsOffline] = useState(false);
+
+    useEffect(() => {
+        const checkConnection = async () => {
+            try {
+                const start = Date.now();
+                await fetch('https://www.google.com', { mode: 'no-cors' });
+                setIsOffline(false);
+            } catch (e) {
+                setIsOffline(true);
+            }
+        };
+        checkConnection();
+        const interval = setInterval(checkConnection, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const renderOfflineBanner = () => {
+        if (!isOffline && !isMutating) return null;
+
+        return (
+            <View style={[styles.offlineBanner, !isOffline && isMutating && { backgroundColor: Colors.primary + '20' }]}>
+                <View style={[styles.pulseDot, isMutating && { backgroundColor: Colors.primary }]} />
+                <Text style={styles.offlineText}>
+                    {isOffline ? 'OFFLINE MODE (LOCAL STORAGE)' : 'SYNCING CHANGES TO CLOUD...'}
+                </Text>
+            </View>
+        );
+    };
 
     const renderContent = () => {
         const item = NAV_ITEMS.find(i => i.id === activeTab);
@@ -84,6 +123,7 @@ export default function Navigation({ onLogout }: NavigationProps) {
     if (isIPadLandscape) {
         return (
             <View style={styles.ipadContainer}>
+                {renderOfflineBanner()}
                 {/* Web-Style Sidebar for iPad */}
                 <View style={styles.sidebar}>
                     <View style={styles.sidebarLogoWrapper}>
@@ -179,6 +219,7 @@ export default function Navigation({ onLogout }: NavigationProps) {
 
     return (
         <View style={styles.phoneContainer}>
+            {renderOfflineBanner()}
             <View style={{ flex: 1 }}>
                 {renderContent()}
             </View>
@@ -219,6 +260,36 @@ export default function Navigation({ onLogout }: NavigationProps) {
 }
 
 const styles = StyleSheet.create({
+    offlineBanner: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 60 : 40,
+        left: '50%',
+        transform: [{ translateX: -125 }],
+        width: 250,
+        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        zIndex: 9999,
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.3)',
+    },
+    pulseDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#EF4444',
+    },
+    offlineText: {
+        color: '#FFF',
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 1,
+    },
     ipadContainer: {
         flex: 1,
         flexDirection: 'row',

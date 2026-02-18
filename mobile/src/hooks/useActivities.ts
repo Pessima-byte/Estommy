@@ -5,7 +5,7 @@ export function useActivities(params?: { limit?: number, entityType?: string, ac
     const { data: activities = [], isLoading: loading, error, refetch } = useQuery({
         queryKey: ['activities', params],
         queryFn: () => activitiesAPI.getAll(params),
-        refetchInterval: 20000,
+        refetchInterval: 60000,
     });
 
     return {

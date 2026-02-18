@@ -39,12 +39,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
 
     useEffect(() => {
-        if (request) {
-            console.log('[Google Auth] Initialized with Redirect URI:', request.redirectUri);
-        }
-    }, [request]);
-
-    useEffect(() => {
         if (response?.type === 'success') {
             const { authentication, params } = response;
             // Get token from either idToken (standard) or params (some platforms)
@@ -53,14 +47,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             if (token) {
                 handleSocialAuth('google', token);
             } else {
-                console.error('[Google Auth] No ID Token found in response');
                 showToast('Authentication failed: No token received', 'error');
             }
         } else if (response?.type === 'error') {
-            console.error('[Google Auth] Response Error:', response.error);
             showToast('Google Sign-In failed', 'error');
-        } else if (response?.type === 'cancel') {
-            console.log('[Google Auth] User Cancelled');
         }
     }, [response]);
 

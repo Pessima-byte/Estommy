@@ -1,7 +1,6 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Linking } from 'react-native';
 import { Image } from 'expo-image';
-import { Eye, Trash2, Mail, Phone } from 'lucide-react-native';
+import { Eye, Trash2, Mail, Phone, MessageCircle } from 'lucide-react-native';
 import { getImageUrl } from '../api/client';
 import { Colors } from '../constants/Theme';
 import { Customer } from '../types';
@@ -22,6 +21,12 @@ const CustomerCard = ({ item, width, onEdit, onDelete, onView }: CustomerCardPro
     const resolvedAvatar = (item.avatar ? getImageUrl(item.avatar) : null) ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'User')}&background=1a1a1a&color=fff&size=128`;
 
+    const openWhatsApp = () => {
+        if (!item.phone) return;
+        const phoneNum = item.phone.replace(/\D/g, '');
+        Linking.openURL(`whatsapp://send?phone=${phoneNum}`);
+    };
+
     return (
         <View style={[styles.card, { width }]}>
             <View style={styles.cardHeader}>
@@ -36,6 +41,14 @@ const CustomerCard = ({ item, width, onEdit, onDelete, onView }: CustomerCardPro
                 </View>
 
                 <View style={styles.actionIcons}>
+                    {item.phone && (
+                        <TouchableOpacity
+                            style={[styles.iconBtn, { borderColor: 'rgba(37, 211, 102, 0.2)', backgroundColor: 'rgba(37, 211, 102, 0.05)' }]}
+                            onPress={openWhatsApp}
+                        >
+                            <MessageCircle size={16} color="#25D366" />
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                         style={styles.iconBtn}
                         onPress={() => onView(item.id)}

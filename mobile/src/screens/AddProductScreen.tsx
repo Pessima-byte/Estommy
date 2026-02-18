@@ -13,6 +13,7 @@ import SelectionModal from '../components/SelectionModal';
 
 import ProductImagePicker from '../components/ProductImagePicker';
 import ProductFormFields from '../components/ProductFormFields';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface AddProductScreenProps {
     onClose: () => void;
@@ -24,6 +25,7 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
     const { showToast } = useToast();
     const { width } = useWindowDimensions();
     const isTablet = width >= 768;
+    const queryClient = useQueryClient();
 
     const [name, setName] = useState(initialProduct?.name || '');
     const [category, setCategory] = useState(initialProduct?.category || '');
@@ -32,7 +34,6 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
     const [stock, setStock] = useState(initialProduct?.stock?.toString() || '');
     const [image, setImage] = useState(initialProduct?.image || '');
     const [images, setImages] = useState<string[]>(initialProduct?.images || []);
-    const [loading, setLoading] = useState(false);
 
     // Category Selection Logic
     const { categories, refetch: refetchCategories } = useCategories();
@@ -81,7 +82,6 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
         if (!result.canceled) {
             const newUris = result.assets.map(a => a.uri);
             if (newUris.length > 0) {
-                // First image becomes primary if none exists
                 if (!image) {
                     setImage(newUris[0]);
                     setImages(prev => [...prev, ...newUris.slice(1)]);
@@ -92,65 +92,92 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
         }
     };
 
-    const handleSubmit = async () => {
-        if (!name || !price || !stock) {
-            showToast('Name, price and stock are required.', 'error');
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            let imageUrl = image;
-            if (image && (image.startsWith('file:') || image.startsWith('content:'))) {
+    const mutation = useMutation({
+        mutationFn: async (rawData: any) => {
+            // Perform image uploads inside the mutation so they retry on reconnect
+            let finalImage = rawData.image;
+            if (rawData.image && (rawData.image.startsWith('file:') || rawData.image.startsWith('content:'))) {
                 try {
-                    const uploadRes = await filesAPI.upload(image);
-                    imageUrl = uploadRes.url;
-                } catch (err) {
-                    console.error('Main image upload failed', err);
-                    showToast('Failed to upload main image.', 'info');
+                    const res = await filesAPI.upload(rawData.image);
+                    finalImage = res.url;
+                } catch (e) {
+                    // Rethrow so the mutation retries later if onlineManager permits
+                    throw e;
                 }
             }
 
-            const uploadedImages: string[] = [];
-            for (const imgUri of images) {
-                if (imgUri.startsWith('file:') || imgUri.startsWith('content:')) {
+            const finalImages = [];
+            for (const img of rawData.images || []) {
+                if (img.startsWith('file:') || img.startsWith('content:')) {
                     try {
-                        const uploadRes = await filesAPI.upload(imgUri);
-                        uploadedImages.push(uploadRes.url);
-                    } catch (err) {
-                        console.error('Additional image upload failed', err);
+                        const res = await filesAPI.upload(img);
+                        finalImages.push(res.url);
+                    } catch (e) {
+                        throw e;
                     }
                 } else {
-                    uploadedImages.push(imgUri);
+                    finalImages.push(img);
                 }
             }
 
             const payload = {
-                name,
-                category,
-                price: parseFloat(price),
-                costPrice: parseFloat(costPrice || '0'),
-                stock: parseInt(stock),
-                image: imageUrl || null,
-                images: uploadedImages,
-                status: parseInt(stock) > 0 ? 'In Stock' : 'Out of Stock'
+                ...rawData,
+                image: finalImage,
+                images: finalImages
             };
 
             if (isEditing && initialProduct) {
-                await productsAPI.update(initialProduct.id, payload);
+                return productsAPI.update(initialProduct.id, payload);
             } else {
-                await productsAPI.create(payload);
+                return productsAPI.create(payload);
             }
-            showToast(isEditing ? 'Product updated' : 'Product created', 'success');
-            onSuccess();
-        } catch (error: any) {
-            console.error(error);
-            showToast(error.message || 'Unable to save product details.', 'error');
-        } finally {
-            setLoading(false);
+        },
+        onMutate: async (newProduct) => {
+            await queryClient.cancelQueries({ queryKey: ['products'] });
+            const previousProducts = queryClient.getQueryData(['products']);
+
+            queryClient.setQueryData(['products'], (old: any[] = []) => {
+                if (isEditing && initialProduct) {
+                    return old.map(p => p.id === initialProduct.id ? { ...p, ...newProduct } : p);
+                }
+                const tempProduct = { id: 'temp-' + Date.now(), ...newProduct };
+                return [tempProduct, ...(Array.isArray(old) ? old : [])];
+            });
+
+            return { previousProducts };
+        },
+        onError: (err, newProduct, context: any) => {
+            queryClient.setQueryData(['products'], context.previousProducts);
+            showToast('Sync queued for later.', 'info');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['stats'] });
         }
+    });
+
+    const handleSubmit = async () => {
+        if (!name || !price || !stock) {
+            showToast('All fields are required.', 'error');
+            return;
+        }
+
+        const rawData = {
+            name,
+            category,
+            price: parseFloat(price),
+            costPrice: parseFloat(costPrice || '0'),
+            stock: parseInt(stock),
+            image, // Local uri (will be uploaded during mutation)
+            images, // Local uris
+            status: parseInt(stock) > 0 ? 'In Stock' : 'Out of Stock'
+        };
+
+        mutation.mutate(rawData);
+        onSuccess();
     };
+
+    const loading = mutation.isPending;
 
     const handleRemoveImage = (uri: string, isPrimary: boolean) => {
         if (isPrimary) {
@@ -172,7 +199,6 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
                     style={[styles.container, isTablet ? styles.containerTablet : {}]}
                 >
                     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                        {/* Header Section */}
                         <View style={styles.header}>
                             <View>
                                 <Text style={styles.headerTitle}>{isEditing ? 'EDIT PRODUCT' : 'NEW PRODUCT'}</Text>
@@ -188,7 +214,6 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
                         </View>
 
                         <View style={[styles.mainContent, isTablet && styles.mainContentTablet]}>
-                            {/* Visual Identity (Image Picker) */}
                             <ProductImagePicker
                                 image={image}
                                 images={images}
@@ -197,7 +222,6 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
                                 isTablet={isTablet}
                             />
 
-                            {/* Form Fields */}
                             <ProductFormFields
                                 name={name}
                                 setName={setName}
@@ -333,86 +357,6 @@ const styles = StyleSheet.create({
     mainContentTablet: {
         flexDirection: 'row',
         gap: 48,
-    },
-    imageSection: {
-        alignItems: 'center',
-    },
-    imageSectionTablet: {
-        width: 280,
-    },
-    imagePlaceholder: {
-        width: 180,
-        height: 180,
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 32,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.05)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-        position: 'relative',
-    },
-    imagePlaceholderText: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.2)',
-        fontWeight: '800',
-        marginTop: 12,
-        fontStyle: 'italic',
-    },
-    cameraBtn: {
-        position: 'absolute',
-        bottom: -10,
-        right: -10,
-        backgroundColor: '#FFF',
-        width: 44,
-        height: 44,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-    },
-    imageHint: {
-        textAlign: 'center',
-        fontSize: 9,
-        color: '#64748B',
-        fontWeight: '700',
-        lineHeight: 16,
-        letterSpacing: 1,
-    },
-    formSection: {
-        flex: 1,
-        gap: 16,
-    },
-    fieldContainer: {
-        gap: 6,
-    },
-    label: {
-        fontSize: 10,
-        color: Colors.primary,
-        fontWeight: '800',
-        letterSpacing: 2,
-    },
-    inputWrapper: {
-        height: 48,
-        backgroundColor: '#1A1A22',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        justifyContent: 'center',
-        paddingHorizontal: 20,
-    },
-    input: {
-        color: '#F8FAFC',
-        fontSize: 16,
-        fontWeight: '600',
-        fontStyle: 'italic',
-    },
-    row: {
-        flexDirection: 'row',
-        gap: 20,
     },
     footer: {
         marginTop: 24,

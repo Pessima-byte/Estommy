@@ -14,7 +14,7 @@ export function useProducts() {
                 image: getImageUrl(p.image)
             }));
         },
-        refetchInterval: 15000,
+        refetchInterval: 60000,
     });
 
     const deleteMutation = useMutation({

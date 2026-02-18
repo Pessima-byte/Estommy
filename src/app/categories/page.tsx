@@ -22,6 +22,7 @@ export default function CategoriesPage() {
     const [editForm, setEditForm] = useState<any>({});
     const [formError, setFormError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const filteredCategories = useMemo(() => {
         return categories.filter(category =>
@@ -69,6 +70,8 @@ export default function CategoriesPage() {
     }
 
     function handleDelete(id: string) {
+        if (isDeleting) return;
+        setIsDeleting(true);
         deleteCategory(id)
             .then(() => {
                 setShowDelete(null);
@@ -76,6 +79,9 @@ export default function CategoriesPage() {
             })
             .catch((error: any) => {
                 showToast(error.message || 'Failed to delete category', 'error');
+            })
+            .finally(() => {
+                setIsDeleting(false);
             });
     }
 
@@ -328,8 +334,20 @@ export default function CategoriesPage() {
                             <h3 className="text-xl font-black mb-2 text-white uppercase tracking-tight">Confirm Deletion</h3>
                             <p className="mb-8 text-white/40 text-[10px] font-medium leading-relaxed">This product group will be permanently removed. Ensure no items are currently assigned to it.</p>
                             <div className="flex flex-col gap-3">
-                                <button className="w-full py-4 rounded-xl bg-[#F59E0B] text-black font-black uppercase tracking-widest text-[10px] hover:bg-white transition-all shadow-lg shadow-orange-500/10" onClick={() => handleDelete(showDelete!)}>Delete Category</button>
-                                <button className="w-full py-4 rounded-xl text-white/30 font-black uppercase tracking-widest text-[10px]" onClick={() => setShowDelete(null)}>Cancel</button>
+                                <button
+                                    className={`w-full py-4 rounded-xl bg-[#F59E0B] text-black font-black uppercase tracking-widest text-[10px] hover:bg-white transition-all shadow-lg shadow-orange-500/10 ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    onClick={() => handleDelete(showDelete!)}
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? 'Processing...' : 'Delete Category'}
+                                </button>
+                                <button
+                                    className="w-full py-4 rounded-xl text-white/30 font-black uppercase tracking-widest text-[10px]"
+                                    onClick={() => setShowDelete(null)}
+                                    disabled={isDeleting}
+                                >
+                                    Cancel
+                                </button>
                             </div>
                         </motion.div>
                     </div>

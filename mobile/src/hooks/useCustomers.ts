@@ -8,7 +8,7 @@ export function useCustomers() {
     const { data: customers = [], isLoading: loading, error, refetch } = useQuery({
         queryKey: ['customers'],
         queryFn: () => customersAPI.getAll(),
-        refetchInterval: 30000, // Reduced frequency for performance
+        refetchInterval: 60000,
     });
 
     const deleteMutation = useMutation({

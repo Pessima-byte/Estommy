@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, AppState, AppStateStatus, Platform } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, AppState, AppStateStatus, Platform, Alert } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Shield, Fingerprint, Lock } from 'lucide-react-native';
@@ -47,6 +47,7 @@ export default function SecurityWrapper({ children, isAuthenticated }: SecurityW
 
         setIsAuthenticating(true);
         try {
+            console.log('[Security] Starting authentication...');
             const hasHardware = await LocalAuthentication.hasHardwareAsync();
             const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
@@ -55,17 +56,26 @@ export default function SecurityWrapper({ children, isAuthenticated }: SecurityW
                     promptMessage: 'Authenticate to access Estommy',
                     fallbackLabel: 'Use Passcode',
                     disableDeviceFallback: false,
+                    cancelLabel: 'Cancel'
                 });
+
+                console.log('[Security] Auth Result:', result);
 
                 if (result.success) {
                     setIsLocked(false);
+                } else {
+                    // Handle specific failure cases or just alert
+                    if (result.error !== 'user_cancel') {
+                        Alert.alert('Authentication Failed', 'Please try again.');
+                    }
                 }
             } else {
-                // If not supported or not enrolled, just unlock
+                console.log('[Security] Hardware not supported or not enrolled. Unlocking.');
                 setIsLocked(false);
             }
         } catch (error) {
             console.error('[Security] Auth Error:', error);
+            Alert.alert('Security Error', 'An error occurred during authentication.');
         } finally {
             setIsAuthenticating(false);
         }

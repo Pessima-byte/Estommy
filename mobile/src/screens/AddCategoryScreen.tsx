@@ -11,45 +11,75 @@ interface AddCategoryScreenProps {
     initialCategory?: any | null;
 }
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 export default function AddCategoryScreen({ onClose, onSuccess, initialCategory }: AddCategoryScreenProps) {
     const { showToast } = useToast();
     const { width } = useWindowDimensions();
     const isTablet = width >= 768;
+    const queryClient = useQueryClient();
 
     const [name, setName] = useState(initialCategory?.name || '');
     const [description, setDescription] = useState(initialCategory?.description || '');
-    const [loading, setLoading] = useState(false);
 
     const isEditing = !!initialCategory;
 
+    const mutation = useMutation({
+        mutationFn: async (payload: any) => {
+            if (isEditing) {
+                return categoriesAPI.update(initialCategory.id, payload);
+            } else {
+                return categoriesAPI.create(payload);
+            }
+        },
+        // Optimistic Update
+        onMutate: async (newCategory) => {
+            await queryClient.cancelQueries({ queryKey: ['categories'] });
+            const previousCategories = queryClient.getQueryData(['categories']);
+
+            queryClient.setQueryData(['categories'], (old: any[] = []) => {
+                if (isEditing) {
+                    return old.map(c => c.id === initialCategory.id ? { ...c, ...newCategory } : c);
+                }
+                return [...old, { id: 'temp-' + Date.now(), ...newCategory }];
+            });
+
+            return { previousCategories };
+        },
+        onError: (err, newCategory, context: any) => {
+            queryClient.setQueryData(['categories'], context.previousCategories);
+            showToast('Sync failed. We will retry when online.', 'info');
+            onSuccess();
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+        },
+        onSuccess: () => {
+            showToast(isEditing ? 'Update synced' : 'Category synced', 'success');
+            onSuccess();
+        }
+    });
+
     const handleSubmit = async () => {
         if (!name) {
-            showToast('Please enter a name for the category.', 'error');
+            showToast('Please enter a name.', 'error');
             return;
         }
 
-        try {
-            setLoading(true);
-            const payload = {
-                name,
-                description: description || null,
-            };
+        const payload = {
+            name,
+            description: description || null,
+        };
 
-            if (isEditing) {
-                await categoriesAPI.update(initialCategory.id, payload);
-            } else {
-                await categoriesAPI.create(payload);
-            }
-            showToast(isEditing ? 'Category updated' : 'Category created', 'success');
+        mutation.mutate(payload);
+
+        // Close modal immediately for "Instant" feel
+        if (!mutation.isError) {
             onSuccess();
-        } catch (error: any) {
-            console.error(error);
-            const message = error.response?.data?.error || 'We could not save the category. Please try again.';
-            showToast(message, 'error');
-        } finally {
-            setLoading(false);
         }
     };
+
+    const loading = mutation.isPending;
 
     return (
         <View style={styles.overlay}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Modal, Platform, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, Modal, Platform, Alert, Linking } from 'react-native';
 import { X, Mail, Phone, MapPin, Calendar, ShoppingBag, CreditCard, ArrowLeft, Download, ExternalLink, ChevronRight, User, Camera, Image as ImageIcon, FileText } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -8,6 +8,7 @@ import { Customer, Sale } from '../types';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
 import { exportToCSV } from '../utils/export';
 import { ActivityLogger } from '../utils/activityLogger';
+import { useQuery } from '@tanstack/react-query';
 
 interface CustomerProfileScreenProps {
     customerId: string;
@@ -18,34 +19,39 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
     const { width, height } = useWindowDimensions();
     const isTablet = width >= 768;
 
-    const [customer, setCustomer] = useState<Customer | null>(null);
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [credits, setCredits] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'credits'>('overview');
 
-    useEffect(() => {
-        fetchData();
-    }, [customerId]);
+    // Customer Detail Query
+    const { data: customer, isLoading: customerLoading } = useQuery({
+        queryKey: ['customer', customerId],
+        queryFn: () => customersAPI.getOne(customerId),
+        enabled: !!customerId,
+        staleTime: 1000 * 60 * 30 // 30 mins
+    });
 
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            const [customerData, allSales, allCredits] = await Promise.all([
-                customersAPI.getOne(customerId),
-                salesAPI.getAll(),
-                creditsAPI.getAll()
-            ]);
+    // Sales Query 
+    const { data: allSales, isLoading: salesLoading } = useQuery({
+        queryKey: ['sales'],
+        queryFn: () => salesAPI.getAll(),
+        staleTime: 1000 * 60 * 5 // 5 min
+    });
 
-            setCustomer(customerData);
-            setSales(allSales.filter((s: any) => s.customerId === customerId));
-            setCredits(allCredits.filter((c: any) => c.customerId === customerId));
-        } catch (error) {
-            console.error('Failed to fetch profile data', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Credits Query
+    const { data: allCredits, isLoading: creditsLoading } = useQuery({
+        queryKey: ['credits'],
+        queryFn: () => creditsAPI.getAll(),
+        staleTime: 1000 * 60 * 5
+    });
+
+    const loading = customerLoading || salesLoading || creditsLoading;
+
+    const sales = useMemo(() =>
+        Array.isArray(allSales) ? allSales.filter((s: any) => s.customerId === customerId) : []
+        , [allSales, customerId]);
+
+    const credits = useMemo(() =>
+        Array.isArray(allCredits) ? allCredits.filter((c: any) => c.customerId === customerId) : []
+        , [allCredits, customerId]);
 
     const stats = useMemo(() => {
         const totalSpent = sales.reduce((sum, s) => sum + s.amount, 0);
@@ -161,7 +167,7 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
                     { header: 'Value', key: 'Value' },
                     { header: 'Details', key: 'Details' }
                 ],
-                `Customer_Report_${customer.name.replace(/\s+/g, '_')}`,
+                `Customer_Report_${(customer.name || 'User').replace(/\s+/g, '_')}`,
                 'Export Customer Report'
             );
 
@@ -181,6 +187,13 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
         }
     };
 
+    // Log profile view
+    useEffect(() => {
+        if (customer) {
+            ActivityLogger.logView('CUSTOMER', customer.id, customer.name);
+        }
+    }, [customer?.id]);
+
     if (loading || !customer) {
         return (
             <View style={styles.loadingContainer}>
@@ -190,15 +203,8 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
         );
     }
 
-    // Log profile view
-    useEffect(() => {
-        if (customer) {
-            ActivityLogger.logView('CUSTOMER', customer.id, customer.name);
-        }
-    }, [customer]);
-
     const resolvedAvatar = (customer.avatar ? getImageUrl(customer.avatar) : null) ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&background=1a1a1a&color=fff&size=128`;
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name || 'User')}&background=1a1a1a&color=fff&size=128`;
 
     return (
         <View style={styles.container}>
@@ -231,9 +237,9 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
                                 />
                             </View>
                             <View style={[styles.statusBadge, {
-                                backgroundColor: customer.status === 'Active' ? '#10B981' : '#F59E0B'
+                                backgroundColor: (customer.status || 'Active') === 'Active' ? '#10B981' : '#F59E0B'
                             }]}>
-                                <Text style={styles.statusText}>{customer.status?.toUpperCase()}</Text>
+                                <Text style={styles.statusText}>{(customer.status || 'Active').toUpperCase()}</Text>
                             </View>
                         </View>
 
@@ -241,9 +247,9 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
                             <View style={styles.identityHeader}>
                                 <View style={styles.labelLine} />
                                 <Text style={styles.identityLabel}>VERIFIED ACCOUNT</Text>
-                                <Text style={styles.idTag}>#{customer.id.slice(-6).toUpperCase()}</Text>
+                                <Text style={styles.idTag}>#{(customer.id || 'UNKNOWN').slice(-6).toUpperCase()}</Text>
                             </View>
-                            <Text style={styles.nameText}>{customer.name?.toUpperCase()}</Text>
+                            <Text style={styles.nameText}>{(customer.name || 'Unknown User').toUpperCase()}</Text>
                             <Text style={styles.contactSub}>{customer.email || 'NO_EMAIL@SYSTEM.COM'} // {customer.phone || 'NO PHONE'}</Text>
                         </View>
 

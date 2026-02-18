@@ -20,22 +20,22 @@ interface AddSaleScreenProps {
     onSuccess: () => void;
 }
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 export default function AddSaleScreen({ onClose, onSuccess }: AddSaleScreenProps) {
     const { showToast } = useToast();
     const { width } = useWindowDimensions();
     const isTablet = width >= 768;
+    const queryClient = useQueryClient();
 
     const { customers } = useCustomers();
     const { products } = useProducts();
     const { items, totalAmount, addItem, updateQuantity, removeItem, clearBasket } = useSaleBasket();
 
-    // Form State
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [newCustomerName, setNewCustomerName] = useState('');
     const [customerType, setCustomerType] = useState<'existing' | 'new'>('existing');
-    const [loading, setLoading] = useState(false);
 
-    // Modal States
     const [customerModalVisible, setCustomerModalVisible] = useState(false);
     const [productModalVisible, setProductModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -44,40 +44,22 @@ export default function AddSaleScreen({ onClose, onSuccess }: AddSaleScreenProps
 
     const receiptId = useMemo(() => `OME-${Math.random().toString(36).substring(2, 7).toUpperCase()}`, []);
 
-    const handleSubmit = async () => {
-        if (items.length === 0) {
-            showToast('Please select at least one product.', 'error');
-            return;
-        }
-
-        let customerId = selectedCustomer?.id;
-
-        try {
-            setLoading(true);
-
-            if (customerType === 'new') {
-                if (!newCustomerName.trim()) {
-                    showToast('Please enter a customer name.', 'error');
-                    setLoading(false);
-                    return;
-                }
+    const mutation = useMutation({
+        mutationFn: async (saleParams: any) => {
+            let customerId = saleParams.customerId;
+            if (saleParams.isNewCustomer) {
                 const newCustomer = await customersAPI.create({
-                    name: newCustomerName,
+                    name: saleParams.customerName,
                     status: 'Active',
                     totalSpent: 0,
                     walletBalance: 0
                 });
                 customerId = newCustomer.id;
-            } else if (!customerId) {
-                showToast('Please select a customer.', 'error');
-                setLoading(false);
-                return;
             }
 
-            // Create sale records
-            await Promise.all(items.map(item =>
+            return Promise.all(saleParams.items.map((item: any) =>
                 salesAPI.create({
-                    customerId: customerId || '',
+                    customerId: customerId,
                     productId: item.product.id,
                     date: new Date().toISOString().split('T')[0],
                     amount: item.product.price * item.quantity,
@@ -86,21 +68,55 @@ export default function AddSaleScreen({ onClose, onSuccess }: AddSaleScreenProps
                     status: 'Completed'
                 })
             ));
-
+        },
+        onMutate: async (variables) => {
+            // Instant feedback
             setLastSaleData({
                 receiptId,
-                customer: selectedCustomer?.name || newCustomerName,
+                customer: variables.customerName,
                 total: totalAmount,
                 items: items.map(i => ({ name: i.product.name, qty: i.quantity, price: i.product.price })),
                 date: new Date().toLocaleDateString('en-GB')
             });
             setShowSuccess(true);
-        } catch (error: any) {
-            showToast(error.message || 'Could not record sales.', 'error');
-        } finally {
-            setLoading(false);
+
+            // Optimistically update relevant queries (e.g. Sales list, Stats)
+            await queryClient.cancelQueries({ queryKey: ['sales'] });
+            await queryClient.cancelQueries({ queryKey: ['stats'] });
+        },
+        onError: () => {
+            showToast('Sales queued for background sync.', 'info');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries();
         }
+    });
+
+    const handleSubmit = async () => {
+        if (items.length === 0) {
+            showToast('Please select products.', 'error');
+            return;
+        }
+
+        if (customerType === 'existing' && !selectedCustomer) {
+            showToast('Please select a customer.', 'error');
+            return;
+        }
+
+        if (customerType === 'new' && !newCustomerName.trim()) {
+            showToast('Enter customer name.', 'error');
+            return;
+        }
+
+        mutation.mutate({
+            isNewCustomer: customerType === 'new',
+            customerName: selectedCustomer?.name || newCustomerName,
+            customerId: selectedCustomer?.id || '',
+            items: items,
+        });
     };
+
+    const loading = mutation.isPending;
 
     const shareReceipt = async () => {
         if (!lastSaleData) return;
@@ -131,14 +147,14 @@ Generated by *ESTOMMY INVENTORY*
         }
     };
 
-    const filteredCustomers = customers.filter((c: Customer) =>
+    const filteredCustomers = useMemo(() => customers.filter((c: Customer) =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    ), [customers, searchQuery]);
 
-    const filteredProducts = products.filter((p: Product) =>
+    const filteredProducts = useMemo(() => products.filter((p: Product) =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ), [products, searchQuery]);
 
     return (
         <SafeAreaView style={styles.overlay} edges={['top', 'bottom']}>
