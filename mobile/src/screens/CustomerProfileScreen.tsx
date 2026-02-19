@@ -230,9 +230,12 @@ export default function CustomerProfileScreen({ customerId, onClose }: CustomerP
                     <View style={styles.profileHeaderCard}>
                         <View style={styles.avatarWrapper}>
                             <View style={styles.avatarBorder}>
+                                <View style={styles.avatarPlaceholder}>
+                                    <User size={40} color="rgba(255,255,255,0.2)" />
+                                </View>
                                 <Image
                                     source={{ uri: resolvedAvatar }}
-                                    style={styles.avatar}
+                                    style={[styles.avatar, { position: 'absolute' }]}
                                     contentFit="cover"
                                 />
                             </View>
@@ -501,6 +504,15 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
         padding: 4,
         backgroundColor: '#0A0C10',
+        position: 'relative',
+    },
+    avatarPlaceholder: {
+        position: 'absolute',
+        top: 4, left: 4, right: 4, bottom: 4,
+        borderRadius: 26,
+        backgroundColor: '#1E1E26',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     avatar: {
         width: '100%',

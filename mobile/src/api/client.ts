@@ -1,11 +1,10 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Product, Customer, Sale, Category, Activity, User, LoginCredentials } from '../types';
 
-const DEFAULT_IP = process.env.EXPO_PUBLIC_API_IP || '192.168.1.71';
-// Fallback to Vercel if env var is missing/empty, otherwise use env var
+// Default to Vercel Cloud API
 export const API_BASE_URL_DEFAULT = process.env.EXPO_PUBLIC_API_URL || 'https://estommy.vercel.app/api';
 
 let authToken: string | null = null;
@@ -110,27 +109,35 @@ export const statsAPI = {
 
 export const filesAPI = {
     upload: async (uri: string): Promise<{ url: string }> => {
-        const currentBase = await getBaseURL();
-        const uploadUrl = `${currentBase}/upload`;
+        // Force Upload to Vercel
+        const uploadUrl = 'https://estommy.vercel.app/api/upload';
         const token = await authAPI.getToken();
 
+        console.warn('[Upload] Starting upload. URI:', uri);
 
+        try {
+            const response = await FileSystem.uploadAsync(uploadUrl, uri, {
+                fieldName: 'file',
+                httpMethod: 'POST',
+                uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+                headers: {
+                    'Accept': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
+            });
 
-        const response = await FileSystem.uploadAsync(uploadUrl, uri, {
-            httpMethod: 'POST',
-            uploadType: 1 as any, // FileSystemUploadType.MULTIPART
-            fieldName: 'file',
-            headers: {
-                'Accept': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
-        });
+            console.warn('[Upload] Response Status:', response.status);
 
-        if (response.status >= 200 && response.status < 300) {
-            return JSON.parse(response.body);
-        } else {
-            console.error('[API] Upload Failed:', response.status, response.body);
-            throw new Error(`Upload failed with status ${response.status}`);
+            if (response.status >= 200 && response.status < 300) {
+                console.warn('[Upload] Success body:', response.body);
+                return JSON.parse(response.body);
+            } else {
+                console.error('[Upload] Failed body:', response.body);
+                throw new Error(`Upload failed: ${response.status}`);
+            }
+        } catch (error: any) {
+            console.error('[Upload] Exception:', error);
+            throw error;
         }
     },
 };
@@ -149,6 +156,9 @@ export const searchAPI = {
 // Helper for image URLs
 export const getImageUrl = (path: string | null | undefined) => {
     if (!path) return undefined;
+    // Filter out legacy default avatars to prevent 404/Connection Refused on old IPs
+    if (path.includes('male-avatar.png') || path.includes('female-avatar.png')) return undefined;
+
     if (path.startsWith('http')) return path;
     const currentBase = api.defaults.baseURL || API_BASE_URL_DEFAULT;
     const base = currentBase.replace('/api', '');

@@ -205,7 +205,7 @@ export default function CustomersScreen() {
             <Modal visible={isAdding} animationType="slide">
                 <AddCustomerScreen
                     onClose={() => { setIsAdding(false); setEditCustomer(null); }}
-                    onSuccess={() => { setIsAdding(false); setEditCustomer(null); refetch(); }}
+                    onSuccess={() => { setIsAdding(false); setEditCustomer(null); }}
                     initialCustomer={editCustomer}
                 />
             </Modal>

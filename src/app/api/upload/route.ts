@@ -13,6 +13,29 @@ export async function OPTIONS() {
   });
 }
 
+import { verifyJwt } from '@/lib/jwt';
+
+async function getSession(request: NextRequest) {
+  // 1. Try Mobile Bearer Token first
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyJwt(token);
+    if (decoded) {
+      return {
+        user: {
+          id: decoded.id,
+          email: decoded.email,
+          role: decoded.role,
+          name: decoded.name,
+        }
+      };
+    }
+  }
+  // 2. Fallback to standard cookie session
+  return await auth();
+}
+
 export async function POST(request: NextRequest) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -21,7 +44,7 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const session = await auth();
+    const session = await getSession(request);
     const isDev = process.env.NODE_ENV === 'development';
 
     if (!session && !isDev) {

@@ -16,6 +16,8 @@ interface AddCustomerScreenProps {
     initialCustomer?: Customer | null;
 }
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer }: AddCustomerScreenProps) {
     const { showToast } = useToast();
     const { width } = useWindowDimensions();
@@ -57,8 +59,10 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                     try {
                         const { available } = await customersAPI.checkAvailability('email', email, initialCustomer?.id);
                         setIsEmailAvailable(available);
+
                     } catch (error) {
-                        console.error('Email check failed', error);
+                        // Offline fallback: Assume available so user isn't blocked
+                        setIsEmailAvailable(true);
                     } finally {
                         setIsEmailChecking(false);
                     }
@@ -80,7 +84,8 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                     const { available } = await customersAPI.checkAvailability('phone', fullPhone, initialCustomer?.id);
                     setIsPhoneAvailable(available);
                 } catch (error) {
-                    console.error('Phone check failed', error);
+                    // Offline fallback: Assume available
+                    setIsPhoneAvailable(true);
                 } finally {
                     setIsPhoneChecking(false);
                 }
@@ -92,13 +97,107 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
     }, [phoneNumber, phoneCode, initialCustomer?.id]);
 
     const isEditing = !!initialCustomer;
+    const queryClient = useQueryClient();
+
+    // ─── MUTATION LIFT FOR OFFLINE SUPPORT ───────────────────────────────────────
+    const mutation = useMutation({
+        mutationFn: async (payload: any) => {
+            const { _isEditing, _customerId, ...data } = payload;
+
+            // 1. Upload Avatar if needed
+            let imageUrl: string | null | undefined = image;
+
+            if (image && (image.startsWith('file:') || image.startsWith('content:'))) {
+                try {
+                    const uploadRes = await filesAPI.upload(image);
+                    imageUrl = uploadRes.url;
+                } catch (uploadError) {
+                    console.error('Avatar upload failed', uploadError);
+                    showToast('Image upload failed. Saving with old image.', 'error');
+                    // On failure during edit, revert to original to avoid data loss
+                    imageUrl = _isEditing ? initialCustomer?.avatar : null;
+                }
+            } else if (_isEditing && image && image.startsWith('http')) {
+                imageUrl = image;
+            } else if (!image) {
+                imageUrl = null;
+            }
+
+            // 2. Upload Attachment if needed
+            let attachmentUrl = initialCustomer?.attachment || null;
+            if (attachmentFile && (attachmentFile.startsWith('file:') || attachmentFile.startsWith('content:'))) {
+                try {
+                    const uploadRes = await filesAPI.upload(attachmentFile);
+                    attachmentUrl = uploadRes.url;
+                } catch (uploadError) {
+                    console.error('Attachment upload failed', uploadError);
+                }
+            }
+
+            const finalPayload = {
+                ...data,
+                avatar: imageUrl,
+                attachment: attachmentUrl
+            };
+
+            // Remove debug logs after fix
+            // console.log('[Mutation] Final Payload created. Avatar:', imageUrl);
+
+            if (_isEditing && _customerId) {
+                return customersAPI.update(_customerId, finalPayload);
+            } else {
+                return customersAPI.create(finalPayload);
+            }
+        },
+        onMutate: async (newInfo: any) => {
+            const { _isEditing, _customerId, ...newCustomer } = newInfo;
+            await queryClient.cancelQueries({ queryKey: ['customers'] });
+            const previousCustomers = queryClient.getQueryData(['customers']);
+
+            queryClient.setQueryData(['customers'], (old: any[] = []) => {
+                const optimisticCust = {
+                    id: _isEditing ? _customerId : `temp-${Date.now()}`,
+                    ...newCustomer,
+                    avatar: image, // Use local URI for optimistic display
+                    attachment: attachment,
+                    walletBalance: initialCustomer?.walletBalance || 0,
+                    totalSpent: initialCustomer?.totalSpent || 0,
+                    status: initialCustomer?.status || 'Active', // capitalization fix
+                    createdAt: initialCustomer?.createdAt || new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                };
+
+                if (_isEditing) {
+                    return old.map(c => c.id === _customerId ? optimisticCust : c);
+                }
+                return [optimisticCust, ...old];
+            });
+
+            return { previousCategories: previousCustomers };
+        },
+        onError: (err: any, newTodo: any, context: any) => {
+            console.error('Mutation Failed:', err);
+            if (context?.previousCategories) {
+                queryClient.setQueryData(['customers'], context.previousCategories);
+            }
+            showToast('Sync failed. Please check inputs.', 'error');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
+        },
+        onSuccess: (_data, variables: any) => {
+            const isEdit = variables._isEditing;
+            showToast(isEdit ? 'Changes saved' : 'Customer added', 'success');
+            onSuccess(); // Close modal here only after success
+        }
+    });
 
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 1,
+            quality: 0.3, // Reduce quality to prevent timeouts
         });
 
         if (!result.canceled) {
@@ -109,8 +208,8 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
     const pickAttachment = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
-            allowsEditing: false,
-            quality: 1,
+            allowsEditing: true, // Allow simple crop if needed, or false
+            quality: 0.3, // significantly compress
         });
 
         if (!result.canceled) {
@@ -125,56 +224,20 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
             return;
         }
 
-        try {
-            setLoading(true);
+        const payload = {
+            name,
+            email: email || null,
+            phone: phoneNumber ? `${phoneCode} ${phoneNumber}` : null,
+            gender,
+            address: location || null,
+            // Add Context for Mutation to solve Race Condition
+            _isEditing: !!initialCustomer,
+            _customerId: initialCustomer?.id
+        };
 
-            let imageUrl = image;
-            if (image && (image.startsWith('file:') || image.startsWith('content:'))) {
-                try {
-                    const uploadRes = await filesAPI.upload(image);
-                    imageUrl = uploadRes.url;
-                } catch (err) {
-                    console.error('Upload failed', err);
-                    showToast('Failed to upload photo. Saving without it.', 'info');
-                    imageUrl = '';
-                }
-            }
+        mutation.mutate(payload);
 
-            let attachmentUrl = initialCustomer?.attachment || null;
-            if (attachmentFile) {
-                try {
-                    const uploadRes = await filesAPI.upload(attachmentFile);
-                    attachmentUrl = uploadRes.url;
-                } catch (err) {
-                    console.error('Attachment upload failed', err);
-                    showToast('Failed to upload attachment.', 'info');
-                }
-            }
-
-            const payload = {
-                name,
-                email: email || null,
-                phone: phoneNumber ? `${phoneCode} ${phoneNumber}` : null,
-                gender,
-                address: location || null,
-                avatar: imageUrl || null,
-                attachment: attachmentUrl
-            };
-
-            if (isEditing && initialCustomer) {
-                await customersAPI.update(initialCustomer.id, payload);
-            } else {
-                await customersAPI.create(payload);
-            }
-            showToast(isEditing ? 'Profile updated' : 'Client created', 'success');
-            onSuccess();
-        } catch (error: any) {
-            console.error(error);
-            const errorMessage = error.response?.data?.error || error.message || 'Failed to save details.';
-            showToast(errorMessage, 'error');
-        } finally {
-            setLoading(false);
-        }
+        // Removed optimistic onSuccess call to prevent race condition
     };
 
     return (
@@ -339,12 +402,12 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                             <TouchableOpacity
                                 style={[
                                     styles.provisionBtn,
-                                    (loading || !isPhoneAvailable || isPhoneChecking || !isEmailAvailable || isEmailChecking || !!emailError) && styles.btnDisabled
+                                    (mutation.isPending || !isPhoneAvailable || isPhoneChecking || !isEmailAvailable || isEmailChecking || !!emailError) && styles.btnDisabled
                                 ]}
                                 onPress={handleSubmit}
-                                disabled={loading || !isPhoneAvailable || isPhoneChecking || !isEmailAvailable || isEmailChecking || !!emailError}
+                                disabled={mutation.isPending || !isPhoneAvailable || isPhoneChecking || !isEmailAvailable || isEmailChecking || !!emailError}
                             >
-                                {loading ? (
+                                {mutation.isPending ? (
                                     <ActivityIndicator color="#000" />
                                 ) : (
                                     <>
