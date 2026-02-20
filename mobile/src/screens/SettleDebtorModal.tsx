@@ -46,16 +46,11 @@ export default function SettleDebtorModal({ debtor, credits, visible, onClose, o
                 uploadedImageUrl = uploadRes.url;
             }
 
+            const latestCredit = [...credits].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
             let amountRemaining = val;
+            let latestCreditUpdatedInLoop = false;
 
-            if (val === 0 && unsettledCredits.length > 0) {
-                await creditsAPI.update(unsettledCredits[0].id, {
-                    amountPaid: unsettledCredits[0].amountPaid,
-                    status: unsettledCredits[0].status,
-                    notes: notes || unsettledCredits[0].notes,
-                    image: uploadedImageUrl || unsettledCredits[0].image
-                });
-            } else {
+            if (val > 0) {
                 for (const credit of unsettledCredits) {
                     if (amountRemaining <= 0) break;
 
@@ -68,6 +63,10 @@ export default function SettleDebtorModal({ debtor, credits, visible, onClose, o
                     const isFullPayment = newTotalPaid >= credit.amount;
                     const status = isFullPayment ? 'Cleared' : credit.status;
 
+                    if (latestCredit && credit.id === latestCredit.id) {
+                        latestCreditUpdatedInLoop = true;
+                    }
+
                     await creditsAPI.update(credit.id, {
                         amountPaid: newTotalPaid,
                         status: status,
@@ -75,6 +74,15 @@ export default function SettleDebtorModal({ debtor, credits, visible, onClose, o
                         image: uploadedImageUrl || credit.image
                     });
                 }
+            }
+
+            if (!latestCreditUpdatedInLoop && latestCredit && (notes || uploadedImageUrl)) {
+                await creditsAPI.update(latestCredit.id, {
+                    amountPaid: latestCredit.amountPaid,
+                    status: latestCredit.status,
+                    notes: notes ? (latestCredit.notes ? latestCredit.notes + '\n' + notes : notes) : latestCredit.notes,
+                    image: uploadedImageUrl || latestCredit.image
+                });
             }
 
             onSuccess();

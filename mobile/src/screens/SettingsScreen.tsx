@@ -66,7 +66,7 @@ export default function SettingsScreen({ onLogout }: SettingsScreenProps) {
 
     const handleOpenNetwork = async () => {
         const current = await getBaseURL();
-        setTempBaseURL(current);
+        setTempBaseURL(current || '');
         setIsEditingNetwork(true);
     };
 

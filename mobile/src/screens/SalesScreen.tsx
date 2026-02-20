@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, ScrollView, TouchableOpacity, RefreshControl, TextInput, Alert, Modal, ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, X } from 'lucide-react-native';
@@ -163,22 +163,26 @@ export default function SalesScreen() {
         );
     }
 
+    const keyExtractor = useCallback((item: Sale) => item.id, []);
+
+    const renderItem = useCallback(({ item }: { item: Sale }) => (
+        <SaleCard
+            item={item}
+            width={itemWidth}
+            onDelete={handleDelete}
+            onAudit={handleAudit}
+        />
+    ), [itemWidth, handleDelete, handleAudit]);
+
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
                 data={filteredSales}
-                keyExtractor={(item) => item.id}
+                keyExtractor={keyExtractor}
                 numColumns={numCols}
                 key={numCols}
                 ListHeaderComponent={headerComponent}
-                renderItem={({ item }) => (
-                    <SaleCard
-                        item={item}
-                        width={itemWidth}
-                        onDelete={handleDelete}
-                        onAudit={handleAudit}
-                    />
-                )}
+                renderItem={renderItem}
                 columnWrapperStyle={numCols > 1 ? { gap } : null}
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={

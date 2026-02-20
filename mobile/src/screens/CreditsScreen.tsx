@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, useWindowDimensions, ScrollView, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { StyleSheet, View, Text, useWindowDimensions, ScrollView, TouchableOpacity, TextInput, RefreshControl, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreditCard, Search, AlertCircle, ArrowUpRight, Clock, CheckCircle2, Plus, ArrowUpDown, Filter, X, Download } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +11,7 @@ import { Modal } from 'react-native';
 import { exportToCSV } from '../utils/export';
 import { ActivityLogger } from '../utils/activityLogger';
 
-const CreditLedgerItem = ({ item, onSettle }: { item: any, onSettle: (credit: any) => void }) => {
+const CreditLedgerItem = React.memo(({ item, onSettle }: { item: any, onSettle: (credit: any) => void }) => {
     const isPaid = item.status === 'Paid';
     const amountDue = item.liability || (item.amount - (item.amountPaid || 0));
 
@@ -54,7 +54,7 @@ const CreditLedgerItem = ({ item, onSettle }: { item: any, onSettle: (credit: an
             </View>
         </TouchableOpacity>
     );
-};
+});
 
 // Use simple icon if lucide doesn't have it directly or use existing
 const DollarIcon = ({ color, size }: any) => (
@@ -93,11 +93,112 @@ export default function CreditsScreen() {
     const totalOutstanding = credits.reduce((sum, c) => sum + (c.liability || 0), 0);
     const totalRecords = credits.length;
 
+    const headerComponent = useMemo(() => (
+        <View>
+            <View style={styles.heroContainer}>
+                <LinearGradient colors={['#1F1F2B', '#111118']} style={styles.heroCard}>
+                    <View style={styles.heroHeaderRow}>
+                        <View style={{ flex: 1 }}>
+                            <View style={styles.brandSubtitleRow}>
+                                <View style={styles.brandLine} />
+                                <Text style={styles.brandSubtitle}>ACCOUNTS RECEIVABLE balance</Text>
+                            </View>
+                            <Text style={styles.heroTitle}>CREDIT LEDGER</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <TouchableOpacity
+                                style={[styles.addBtn, { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
+                                activeOpacity={0.8}
+                                onPress={async () => {
+                                    try {
+                                        await exportToCSV(
+                                            credits,
+                                            [
+                                                { header: 'ID', key: 'id' },
+                                                { header: 'Customer', key: 'customerName' },
+                                                { header: 'Amount (LE)', key: 'amount' },
+                                                { header: 'Paid (LE)', key: 'amountPaid' },
+                                                { header: 'Due (LE)', key: 'liability' },
+                                                { header: 'Status', key: 'status' },
+                                                { header: 'Date', key: (c: any) => new Date(c.createdAt).toLocaleDateString() },
+                                                { header: 'Notes', key: (c: any) => c.notes || '' }
+                                            ],
+                                            'ESTOMMY_Credits_Report',
+                                            'Export Credit Records'
+                                        );
+                                        await ActivityLogger.logExport('CREDIT', credits.length);
+                                    } catch (e) {
+                                        console.error(e);
+                                    }
+                                }}
+                            >
+                                <Download size={20} color="#C5A059" />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={() => setShowAdd(true)}>
+                                <Plus size={20} color="#000" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <View style={styles.intelligenceGrid}>
+                        <View style={styles.intelCard}>
+                            <Text style={styles.intelLabel}>RECORDS tracked</Text>
+                            <Text style={styles.intelValue}>{totalRecords}</Text>
+                        </View>
+                        <View style={styles.intelCard}>
+                            <Text style={[styles.intelLabel, { color: '#C5A059' }]}>OUTSTANDING DUe</Text>
+                            <View style={styles.intelValueRow}>
+                                <Text style={styles.intelCurrency}>LE</Text>
+                                <Text style={styles.intelValue}>{totalOutstanding.toLocaleString()}</Text>
+                            </View>
+                        </View>
+                    </View>
+                </LinearGradient>
+            </View>
+
+            <View style={styles.searchRow}>
+                <View style={styles.searchBox}>
+                    <Search size={18} color="#475569" style={{ marginRight: 8 }} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search records..."
+                        placeholderTextColor="#334155"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                </View>
+                <TouchableOpacity style={styles.sortBtn} onPress={() => setSortModalVisible(true)}>
+                    <ArrowUpDown size={20} color={sortBy === 'newest' ? '#334155' : Colors.primary} />
+                </TouchableOpacity>
+            </View>
+        </View>
+    ), [totalOutstanding, totalRecords, credits, searchQuery, sortBy]);
+
+    const keyExtractor = useCallback((item: any) => item.id, []);
+
+    const renderItem = useCallback(({ item }: { item: any }) => (
+        <CreditLedgerItem
+            item={item}
+            onSettle={setSelectedCredit}
+        />
+    ), [setSelectedCredit]);
+
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView
+            <FlatList
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                data={filteredCredits}
+                keyExtractor={keyExtractor}
+                ListHeaderComponent={headerComponent}
+                renderItem={renderItem}
+                ListEmptyComponent={
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyText}>NO CREDIT RECORDS</Text>
+                        <Text style={styles.emptySubtext}>NO OUTSTANDING CREDITS OR HISTORY FOUND.</Text>
+                    </View>
+                }
+                ListFooterComponent={<View style={{ height: 100 }} />}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading}
@@ -106,117 +207,7 @@ export default function CreditsScreen() {
                         colors={[Colors.primary]}
                     />
                 }
-            >
-                {/* Hero Section */}
-                <View style={styles.heroContainer}>
-                    <LinearGradient
-                        colors={['#1F1F2B', '#111118']}
-                        style={styles.heroCard}
-                    >
-                        {/* Title & Top Action */}
-                        <View style={styles.heroHeaderRow}>
-                            <View style={{ flex: 1 }}>
-                                <View style={styles.brandSubtitleRow}>
-                                    <View style={styles.brandLine} />
-                                    <Text style={styles.brandSubtitle}>ACCOUNTS RECEIVABLE balance</Text>
-                                </View>
-                                <Text style={styles.heroTitle}>CREDIT LEDGER</Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', gap: 12 }}>
-                                <TouchableOpacity
-                                    style={[styles.addBtn, { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
-                                    activeOpacity={0.8}
-                                    onPress={async () => {
-                                        try {
-                                            await exportToCSV(
-                                                credits,
-                                                [
-                                                    { header: 'ID', key: 'id' },
-                                                    { header: 'Customer', key: 'customerName' },
-                                                    { header: 'Amount (LE)', key: 'amount' },
-                                                    { header: 'Paid (LE)', key: 'amountPaid' },
-                                                    { header: 'Due (LE)', key: 'liability' },
-                                                    { header: 'Status', key: 'status' },
-                                                    { header: 'Date', key: (c: any) => new Date(c.createdAt).toLocaleDateString() },
-                                                    { header: 'Notes', key: (c: any) => c.notes || '' }
-                                                ],
-                                                'ESTOMMY_Credits_Report',
-                                                'Export Credit Records'
-                                            );
-
-                                            // Log the export activity
-                                            await ActivityLogger.logExport('CREDIT', credits.length);
-                                        } catch (e) {
-                                            console.error(e);
-                                        }
-                                    }}
-                                >
-                                    <Download size={20} color="#C5A059" />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={styles.addBtn}
-                                    activeOpacity={0.8}
-                                    onPress={() => setShowAdd(true)}
-                                >
-                                    <Plus size={20} color="#000" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Structured Intelligence Grid */}
-                        <View style={styles.intelligenceGrid}>
-                            <View style={styles.intelCard}>
-                                <Text style={styles.intelLabel}>RECORDS tracked</Text>
-                                <Text style={styles.intelValue}>{totalRecords}</Text>
-                            </View>
-                            <View style={styles.intelCard}>
-                                <Text style={[styles.intelLabel, { color: '#C5A059' }]}>OUTSTANDING DUe</Text>
-                                <View style={styles.intelValueRow}>
-                                    <Text style={styles.intelCurrency}>LE</Text>
-                                    <Text style={styles.intelValue}>{totalOutstanding.toLocaleString()}</Text>
-                                </View>
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </View>
-
-                {/* Search Box */}
-                <View style={styles.searchRow}>
-                    <View style={styles.searchBox}>
-                        <Search size={18} color="#475569" style={{ marginRight: 8 }} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search records..."
-                            placeholderTextColor="#334155"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
-                    <TouchableOpacity style={styles.sortBtn} onPress={() => setSortModalVisible(true)}>
-                        <ArrowUpDown size={20} color={sortBy === 'newest' ? '#334155' : Colors.primary} />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Ledger List */}
-                <View style={styles.ledgerList}>
-                    {filteredCredits.map((item) => (
-                        <CreditLedgerItem
-                            key={item.id}
-                            item={item}
-                            onSettle={setSelectedCredit}
-                        />
-                    ))}
-
-                    {filteredCredits.length === 0 && (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyText}>NO CREDIT RECORDS</Text>
-                            <Text style={styles.emptySubtext}>NO OUTSTANDING CREDITS OR HISTORY FOUND.</Text>
-                        </View>
-                    )}
-                </View>
-
-                <View style={{ height: 100 }} />
-            </ScrollView>
+            />
 
             {/* Settle Modal */}
             {selectedCredit && (

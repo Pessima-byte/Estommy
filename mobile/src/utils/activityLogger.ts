@@ -47,10 +47,10 @@ export class ActivityLogger {
                 entityType: activity.entityType,
                 entityId: activity.entityId,
                 entityName: activity.entityName,
-                description: activity.description || this.generateDescription(activity),
+                details: activity.description || this.generateDescription(activity),
                 metadata: activity.metadata,
                 createdAt: new Date().toISOString(),
-            });
+            } as any);
         } catch (error) {
             // Silent fail - don't break the app if logging fails
             console.error('[ActivityLogger] Failed to log activity:', error);

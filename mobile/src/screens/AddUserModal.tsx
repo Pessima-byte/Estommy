@@ -20,7 +20,7 @@ export default function AddUserModal({ visible, onClose, onSuccess }: AddUserMod
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('USER');
+    const [role, setRole] = useState<'ADMIN' | 'MANAGER' | 'USER'>('USER');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
@@ -36,7 +36,7 @@ export default function AddUserModal({ visible, onClose, onSuccess }: AddUserMod
                 email,
                 password,
                 role
-            });
+            } as any);
             onSuccess();
         } catch (error: any) {
             console.error(error);
@@ -135,7 +135,7 @@ export default function AddUserModal({ visible, onClose, onSuccess }: AddUserMod
                                                     styles.roleOption,
                                                     isSelected && { borderColor: r.color, backgroundColor: `${r.color}10` }
                                                 ]}
-                                                onPress={() => setRole(r.id)}
+                                                onPress={() => setRole(r.id as any)}
                                             >
                                                 <View style={[styles.radioCircle, isSelected && { borderColor: r.color }]}>
                                                     {isSelected && <View style={[styles.radioFill, { backgroundColor: r.color }]} />}

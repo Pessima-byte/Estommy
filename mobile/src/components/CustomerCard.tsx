@@ -1,3 +1,4 @@
+import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Eye, Trash2, Mail, Phone, MessageCircle, User } from 'lucide-react-native';
@@ -131,4 +132,4 @@ const styles = StyleSheet.create({
     modifyBtnText: { fontSize: 10, fontWeight: '900', color: '#E2E8F0', letterSpacing: 2, fontStyle: 'italic' },
 });
 
-export default CustomerCard;
+export default React.memo(CustomerCard);

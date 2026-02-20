@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, TouchableOpacity, TextInput, Alert, Modal, RefreshControl, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { exportToCSV } from '../utils/export';
@@ -172,23 +172,27 @@ export default function CustomersScreen() {
         </>
     ), [customers.length, exporting, searchQuery, selectedStatus, sortBy]);
 
+    const keyExtractor = useCallback((item: Customer) => item.id, []);
+
+    const renderItem = useCallback(({ item }: { item: Customer }) => (
+        <CustomerCard
+            item={item}
+            width={itemWidth}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onView={setViewCustomerId}
+        />
+    ), [itemWidth, handleEdit, handleDelete, setViewCustomerId]);
+
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
                 data={filteredCustomers}
-                keyExtractor={(item) => item.id}
+                keyExtractor={keyExtractor}
                 numColumns={numCols}
                 key={numCols}
                 ListHeaderComponent={headerComponent}
-                renderItem={({ item }) => (
-                    <CustomerCard
-                        item={item}
-                        width={itemWidth}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onView={setViewCustomerId}
-                    />
-                )}
+                renderItem={renderItem}
                 columnWrapperStyle={numCols > 1 ? { gap } : null}
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={

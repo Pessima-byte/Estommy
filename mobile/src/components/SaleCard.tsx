@@ -257,4 +257,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SaleCard;
+export default React.memo(SaleCard);

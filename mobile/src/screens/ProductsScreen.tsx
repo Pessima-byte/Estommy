@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, Alert, Modal, RefreshControl, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useProducts } from '../hooks/useProducts';
@@ -134,23 +134,27 @@ export default function ProductsScreen() {
         </View>
     ), [stats, exporting, searchQuery, selectedCategory, selectedStatus]);
 
+    const keyExtractor = useCallback((item: Product) => item.id, []);
+
+    const renderItem = useCallback(({ item }: { item: Product }) => (
+        <ProductCard
+            item={item}
+            width={itemWidth}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onPress={handleDetails}
+        />
+    ), [itemWidth, handleEdit, handleDelete, handleDetails]);
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <FlatList
                 data={filteredProducts}
-                keyExtractor={(item) => item.id}
+                keyExtractor={keyExtractor}
                 numColumns={numCols}
                 key={numCols}
                 ListHeaderComponent={headerComponent}
-                renderItem={({ item }) => (
-                    <ProductCard
-                        item={item}
-                        width={itemWidth}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onPress={handleDetails}
-                    />
-                )}
+                renderItem={renderItem}
                 columnWrapperStyle={numCols > 1 ? { gap } : null}
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={

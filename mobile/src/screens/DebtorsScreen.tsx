@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, FlatList, TouchableOpacity, TextInput, RefreshControl, Platform, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,7 +14,7 @@ import { exportToCSV } from '../utils/export';
 import { Download } from 'lucide-react-native';
 import { ActivityLogger } from '../utils/activityLogger';
 
-const DebtorCard = ({ debtor, onHistory, onSelect, lastNote, lastImage, onImagePress }: { debtor: any, onHistory: (d: any) => void, onSelect: (d: any) => void, lastNote?: string, lastImage?: string, onImagePress?: (uri: string) => void }) => {
+const DebtorCard = React.memo(({ debtor, onHistory, onSelect, lastNote, lastImage, onImagePress }: { debtor: any, onHistory: (d: any) => void, onSelect: (d: any) => void, lastNote?: string, lastImage?: string, onImagePress?: (uri: string) => void }) => {
     return (
         <TouchableOpacity
             style={styles.debtorCard}
@@ -92,7 +92,7 @@ const DebtorCard = ({ debtor, onHistory, onSelect, lastNote, lastImage, onImageP
             </View>
         </TouchableOpacity>
     );
-};
+});
 
 export default function DebtorsScreen() {
     const { debtors, loading: loadingDebtors, refetch: refetchDebtors } = useDebtors();
@@ -224,26 +224,30 @@ export default function DebtorsScreen() {
         </View>
     ), [searchTerm, sortBy, totalOutstanding, debtors]);
 
+    const keyExtractor = useCallback((item: any) => item.id, []);
+
+    const renderItem = useCallback(({ item: debtor }: { item: any }) => {
+        const latestCredit = latestCreditsMap[debtor.id];
+        return (
+            <DebtorCard
+                debtor={debtor}
+                lastNote={latestCredit?.notes}
+                lastImage={latestCredit?.image}
+                onHistory={handleHistory}
+                onSelect={handleHistory}
+                onImagePress={(uri) => setViewerImage(uri)}
+            />
+        );
+    }, [latestCreditsMap, setViewerImage]);
+
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
                 data={filteredDebtors}
-                keyExtractor={(item) => item.id}
+                keyExtractor={keyExtractor}
                 contentContainerStyle={styles.scrollContent}
                 ListHeaderComponent={headerComponent}
-                renderItem={({ item: debtor }) => {
-                    const latestCredit = latestCreditsMap[debtor.id];
-                    return (
-                        <DebtorCard
-                            debtor={debtor}
-                            lastNote={latestCredit?.notes}
-                            lastImage={latestCredit?.image}
-                            onHistory={handleHistory}
-                            onSelect={handleHistory}
-                            onImagePress={(uri) => setViewerImage(uri)}
-                        />
-                    );
-                }}
+                renderItem={renderItem}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading}
