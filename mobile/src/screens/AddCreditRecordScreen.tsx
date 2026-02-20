@@ -14,6 +14,59 @@ interface AddCreditRecordScreenProps {
     onSuccess: () => void;
 }
 
+const SelectionModal = ({ visible, onClose, title, data, onSelect, type, searchQuery, setSearchQuery, height, width }: any) => (
+    <Modal visible={visible} animationType="fade" transparent>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={[styles.modalOverlay, { paddingTop: Platform.OS === 'ios' ? 70 : 40, paddingBottom: 40 }]}
+        >
+            <View style={[styles.modalContent, { flex: 1, width: Math.min(width * 0.9, 600) }]}>
+                <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>{title}</Text>
+                    <TouchableOpacity onPress={onClose}>
+                        <X size={24} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.searchBox}>
+                    <Search size={20} color="#64748B" />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search..."
+                        placeholderTextColor="#64748B"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        autoFocus
+                    />
+                </View>
+
+                <FlatList
+                    data={data}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={{ padding: 20, gap: 10 }}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={styles.listItem}
+                            onPress={() => onSelect(item)}
+                        >
+                            <View>
+                                <Text style={styles.listItemTitle}>{item.name}</Text>
+                                <Text style={styles.listItemSubtitle}>
+                                    {type === 'product'
+                                        ? `Le ${item.price.toLocaleString()}`
+                                        : item.phone || 'Registry Null'
+                                    }
+                                </Text>
+                            </View>
+                            <ArrowRight size={16} color="#C5A059" />
+                        </TouchableOpacity>
+                    )}
+                />
+            </View>
+        </KeyboardAvoidingView>
+    </Modal>
+);
+
 export default function AddCreditRecordScreen({ onClose, onSuccess }: AddCreditRecordScreenProps) {
     const { showToast } = useToast();
     const { width, height } = useWindowDimensions();
@@ -172,61 +225,6 @@ export default function AddCreditRecordScreen({ onClose, onSuccess }: AddCreditR
             setLoading(false);
         }
     };
-
-    const SelectionModal = ({ visible, onClose, title, data, onSelect, type }: any) => (
-        <Modal visible={visible} animationType="fade" transparent>
-            <View style={styles.modalOverlay}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}
-                >
-                    <View style={[styles.modalContent, { height: height * 0.8, width: Math.min(width * 0.9, 600) }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{title}</Text>
-                            <TouchableOpacity onPress={onClose}>
-                                <X size={24} color="#FFF" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.searchBox}>
-                            <Search size={20} color="#64748B" />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Search..."
-                                placeholderTextColor="#64748B"
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                autoFocus
-                            />
-                        </View>
-
-                        <FlatList
-                            data={data}
-                            keyExtractor={(item) => item.id}
-                            contentContainerStyle={{ padding: 20, gap: 10 }}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.listItem}
-                                    onPress={() => onSelect(item)}
-                                >
-                                    <View>
-                                        <Text style={styles.listItemTitle}>{item.name}</Text>
-                                        <Text style={styles.listItemSubtitle}>
-                                            {type === 'product'
-                                                ? `Le ${item.price.toLocaleString()}`
-                                                : item.phone || 'Registry Null'
-                                            }
-                                        </Text>
-                                    </View>
-                                    <ArrowRight size={16} color="#C5A059" />
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </KeyboardAvoidingView>
-            </View>
-        </Modal>
-    );
 
     const filteredCustomers = customers.filter((c: Customer) =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -502,6 +500,10 @@ export default function AddCreditRecordScreen({ onClose, onSuccess }: AddCreditR
                     setCustomerModalVisible(false);
                     setSearchQuery('');
                 }}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                height={height}
+                width={width}
             />
 
             <SelectionModal
@@ -511,6 +513,10 @@ export default function AddCreditRecordScreen({ onClose, onSuccess }: AddCreditR
                 data={filteredProducts}
                 onSelect={handleAddProduct}
                 type="product"
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                height={height}
+                width={width}
             />
         </View>
     );
@@ -536,17 +542,17 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     scrollContent: {
-        padding: 40,
+        padding: 24,
         flexGrow: 1,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 40,
+        marginBottom: 24,
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: '900',
         fontStyle: 'italic',
         color: '#FFF',
@@ -587,7 +593,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     mainBody: {
-        gap: 40,
+        gap: 24,
     },
     mainBodyTablet: {
         flexDirection: 'row',
@@ -595,11 +601,11 @@ const styles = StyleSheet.create({
     },
     leftCol: {
         flex: 1,
-        gap: 24,
+        gap: 16,
     },
     rightCol: {
         flex: 1,
-        gap: 24,
+        gap: 16,
     },
     fieldGroup: {
         gap: 10,
@@ -644,16 +650,16 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.02)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 16,
-        paddingHorizontal: 20,
-        height: 56,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        height: 48,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     textArea: {
-        height: 120,
-        paddingVertical: 15,
+        height: 80,
+        paddingVertical: 12,
         alignItems: 'flex-start',
     },
     inputText: {
@@ -779,8 +785,8 @@ const styles = StyleSheet.create({
     },
     amountCard: {
         backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 32,
-        padding: 24,
+        borderRadius: 24,
+        padding: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
@@ -788,7 +794,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
     },
     amountLabelRow: {
         flexDirection: 'row',
@@ -834,12 +840,12 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.05)',
     },
     hugeAmountInput: {
-        fontSize: 48,
+        fontSize: 36,
         fontWeight: '900',
         fontStyle: 'italic',
         color: '#FFF',
         textAlign: 'right',
-        height: 60,
+        height: 48,
         padding: 0,
     },
     buttonRow: {
@@ -849,12 +855,12 @@ const styles = StyleSheet.create({
     },
     abortBtn: {
         flex: 1,
-        height: 64,
+        height: 56,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 20,
+        borderRadius: 16,
     },
     abortText: {
         fontSize: 11,
@@ -865,9 +871,9 @@ const styles = StyleSheet.create({
     },
     saveBtn: {
         flex: 2.5,
-        height: 64,
+        height: 56,
         backgroundColor: '#FFF',
-        borderRadius: 20,
+        borderRadius: 16,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

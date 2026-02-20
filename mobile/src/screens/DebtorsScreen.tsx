@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useDebtors } from '../hooks/useDebtors';
 import { useCredits } from '../hooks/useCredits';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
-import SettlePaymentModal from './SettlePaymentModal';
+import SettleDebtorModal from './SettleDebtorModal';
 import AddCreditRecordScreen from './AddCreditRecordScreen';
 import { getImageUrl } from '../api/client';
 import { exportToCSV } from '../utils/export';
@@ -99,7 +99,7 @@ export default function DebtorsScreen() {
     const { credits, refetch: refetchCredits, loading: loadingCredits } = useCredits();
     const { width } = useWindowDimensions();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedDebtorId, setSelectedDebtorId] = useState<string | null>(null);
+    const [selectedDebtor, setSelectedDebtor] = useState<any>(null);
     const [showAdd, setShowAdd] = useState(false);
     const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'newest' | 'oldest' | 'debt_desc'>('debt_desc');
     const [sortModalVisible, setSortModalVisible] = useState(false);
@@ -123,8 +123,7 @@ export default function DebtorsScreen() {
 
     const loading = loadingDebtors || loadingCredits;
 
-    // Find the actual credit object to settle from the reactive credits array
-    const creditToSettle = credits.find(c => c.id === selectedDebtorId);
+
 
     const filteredDebtors = debtors.filter((d: any) =>
         d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -149,11 +148,8 @@ export default function DebtorsScreen() {
     const totalOutstanding = debtors.reduce((acc: number, curr: any) => acc + (curr.totalDebt || 0), 0);
 
     const handleHistory = (debtor: any) => {
-        const customerCredits = credits.filter((c: any) => c.customerId === debtor.id);
-        if (customerCredits.length > 0) {
-            // Sort by most recent/highest amount to be helpful, or just take the first
-            setSelectedDebtorId(customerCredits[0].id);
-        }
+        // We select the entire debtor so we can settle their aggregate debt
+        setSelectedDebtor(debtor);
     };
 
     const handleExportCSV = async () => {
@@ -268,14 +264,15 @@ export default function DebtorsScreen() {
                 windowSize={10}
             />
 
-            {/* Reuse Settle Modal for details/history */}
-            {creditToSettle && (
-                <SettlePaymentModal
-                    visible={!!selectedDebtorId}
-                    credit={creditToSettle}
-                    onClose={() => setSelectedDebtorId(null)}
+            {/* Reuse Settle Modal to settle total debtor balance */}
+            {selectedDebtor && (
+                <SettleDebtorModal
+                    visible={!!selectedDebtor}
+                    debtor={selectedDebtor}
+                    credits={credits.filter((c: any) => c.customerId === selectedDebtor.id)}
+                    onClose={() => setSelectedDebtor(null)}
                     onSuccess={() => {
-                        setSelectedDebtorId(null);
+                        setSelectedDebtor(null);
                         refetchAll();
                     }}
                 />
