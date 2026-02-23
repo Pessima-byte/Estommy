@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { X, User, Camera, ArrowRight, ChevronDown, Check } from 'lucide-react-native';
+import { X, User, Camera, ArrowRight, ChevronDown, Check, ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
@@ -247,55 +247,78 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                 style={{ width: '100%', alignItems: 'center' }}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
             >
-                <LinearGradient
-                    colors={['#18181F', '#0F1115']}
-                    style={[styles.container, isTablet ? styles.containerTablet : {}]}
-                >
-                    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={[styles.modalContent, isTablet && { width: 820, height: 660 }]}>
+                    <LinearGradient
+                        colors={['#060609', '#0F172A', '#060608']}
+                        style={styles.container}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    />
+                    {/* Atmosphere Layer */}
+                    <View style={styles.atmosphereGlow} pointerEvents="none" />
+                    <View style={[styles.atmosphereGlow, { top: '40%', left: -100, opacity: 0.03, backgroundColor: '#00D9FF' }]} pointerEvents="none" />
+                    <ScrollView
+                        contentContainerStyle={[styles.scrollContent, isTablet && { padding: 32 }]}
+                        showsVerticalScrollIndicator={false}
+                        scrollEnabled={true}
+                    >
                         {/* Header Section */}
-                        <View style={styles.header}>
-                            <View>
-                                <Text style={styles.headerTitle}>{isEditing ? 'EDIT CLIENT' : 'ADD CLIENT'}</Text>
-                                <View style={styles.headerSubtitleRow}>
-                                    <View style={styles.subtitleLine} />
-                                    <Text style={styles.headerSubtitle}>{isEditing ? 'UPDATE CLIENT INFO' : 'ADD NEW CLIENT'}</Text>
+                        <View style={[styles.header, isTablet && { marginBottom: 28, alignItems: 'center' }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                {isTablet && (
+                                    <TouchableOpacity
+                                        onPress={onClose}
+                                        style={{
+                                            marginRight: 20,
+                                            backgroundColor: 'rgba(255,255,255,0.05)',
+                                            padding: 10,
+                                            borderRadius: 12,
+                                            borderWidth: 1,
+                                            borderColor: 'rgba(255,255,255,0.1)'
+                                        }}
+                                    >
+                                        <ChevronLeft size={24} color={Colors.primary} />
+                                    </TouchableOpacity>
+                                )}
+                                <View>
+                                    <Text style={[styles.headerTitle, isTablet && { fontSize: 24 }]}>{isEditing ? 'EDIT CLIENT' : 'ADD CLIENT'}</Text>
+                                    <View style={styles.headerSubtitleRow}>
+                                        <View style={[styles.subtitleLine, isTablet && { width: 40, height: 3 }]} />
+                                        <Text style={[styles.headerSubtitle, isTablet && { fontSize: 12 }]}>{isEditing ? 'UPDATE CLIENT INFO' : 'ADD NEW CLIENT'}</Text>
+                                    </View>
                                 </View>
                             </View>
                             <View style={styles.authTag}>
-                                <Text style={styles.authLabel}>CLIENT ID</Text>
-                                <Text style={styles.authValue}>{initialCustomer?.id.slice(0, 8).toUpperCase() || 'NEW'}</Text>
+                                <Text style={[styles.authLabel, isTablet && { fontSize: 10 }]}>CLIENT ID</Text>
+                                <Text style={[styles.authValue, isTablet && { fontSize: 14 }]}>{initialCustomer?.id.slice(0, 8).toUpperCase() || 'NEW'}</Text>
                             </View>
                         </View>
 
-                        <View style={[styles.mainContent, isTablet && styles.mainContentTablet]}>
-                            {/* Left Column: Photo */}
-                            <View style={[styles.imageSection, isTablet && styles.imageSectionTablet]}>
-                                <View style={styles.imagePlaceholder}>
-                                    {image ? (
-                                        <Image source={{ uri: image }} style={{ width: 180, height: 180, borderRadius: 32 }} />
-                                    ) : (
-                                        <View style={{ alignItems: 'center' }}>
-                                            <User size={48} color="rgba(255,255,255,0.1)" strokeWidth={1} />
-                                            <Text style={styles.imagePlaceholderText}>PHOTO</Text>
-                                        </View>
-                                    )}
+                        <View style={styles.mainContent}>
+                            {/* Row 1: Photo and Name */}
+                            <View style={styles.topSection}>
+                                <View style={styles.imageSection}>
+                                    <View style={[styles.imagePlaceholder, isTablet && { width: 100, height: 100, borderRadius: 28 }]}>
+                                        {image ? (
+                                            <Image source={{ uri: image }} style={[isTablet ? { width: 92, height: 92, borderRadius: 24 } : { width: 70, height: 70, borderRadius: 20 }]} />
+                                        ) : (
+                                            <View style={{ alignItems: 'center' }}>
+                                                <User size={isTablet ? 32 : 20} color="rgba(255,255,255,0.1)" strokeWidth={1} />
+                                                <Text style={[styles.imagePlaceholderText, isTablet && { fontSize: 10 }]}>PHOTO</Text>
+                                            </View>
+                                        )}
 
-                                    <TouchableOpacity style={styles.cameraBtn} onPress={pickImage}>
-                                        <Camera size={20} color="#000" />
-                                    </TouchableOpacity>
+                                        <TouchableOpacity style={[styles.cameraBtn, isTablet && { width: 36, height: 36, borderRadius: 12, bottom: -4, right: -4 }]} onPress={pickImage}>
+                                            <Camera size={isTablet ? 20 : 16} color="#000" />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                                <Text style={styles.imageHint}>
-                                    Recommended: Square photo.
-                                </Text>
-                            </View>
 
-                            {/* Right Column: Fields */}
-                            <View style={styles.formSection}>
-                                <View style={styles.fieldContainer}>
-                                    <Text style={styles.label}>FULL NAME</Text>
-                                    <View style={styles.inputWrapper}>
+                                <View style={[styles.fieldContainer, { flex: 1, marginLeft: isTablet ? 24 : 10 }]}>
+                                    <Text style={[styles.label, isTablet && { fontSize: 11 }]}>FULL NAME</Text>
+                                    <View style={[styles.inputWrapper, isTablet && { height: 52, borderRadius: 12 }]}>
                                         <TextInput
-                                            style={styles.input}
+                                            style={[styles.input, isTablet && { fontSize: 15 }]}
                                             placeholder="Client Name"
                                             placeholderTextColor="rgba(255,255,255,0.2)"
                                             value={name}
@@ -303,18 +326,22 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                                         />
                                     </View>
                                 </View>
+                            </View>
 
-                                <View style={styles.row}>
+                            {/* Rest of the fields */}
+                            <View style={styles.formSection}>
+
+                                <View style={[styles.row, isTablet && { gap: 24 }]}>
                                     <View style={[styles.fieldContainer, { flex: 1.5 }]}>
-                                        <Text style={styles.label}>
+                                        <Text style={[styles.label, isTablet && { fontSize: 11 }]}>
                                             PHONE NUMBER
-                                            {isPhoneChecking && <Text style={styles.checkingText}> (CHECKING...)</Text>}
-                                            {!isPhoneAvailable && <Text style={styles.errorText}> (ALREADY IN USE)</Text>}
+                                            {isPhoneChecking && <Text style={[styles.checkingText, isTablet && { fontSize: 9 }]}> (CHECKING...)</Text>}
+                                            {!isPhoneAvailable && <Text style={[styles.errorText, isTablet && { fontSize: 9 }]}> (ALREADY IN USE)</Text>}
                                         </Text>
-                                        <View style={[styles.phoneInputWrapper, !isPhoneAvailable && styles.inputWrapperError]}>
-                                            <Text style={styles.phonePrefix}>{phoneCode}</Text>
+                                        <View style={[styles.phoneInputWrapper, !isPhoneAvailable && styles.inputWrapperError, isTablet && { height: 52, borderRadius: 12 }]}>
+                                            <Text style={[styles.phonePrefix, isTablet && { fontSize: 16 }]}>{phoneCode}</Text>
                                             <TextInput
-                                                style={[styles.input, { marginLeft: 8 }]}
+                                                style={[styles.input, { marginLeft: 8 }, isTablet && { fontSize: 15 }]}
                                                 placeholder="75553022"
                                                 placeholderTextColor="rgba(255,255,255,0.2)"
                                                 keyboardType="phone-pad"
@@ -326,27 +353,27 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                                     </View>
 
                                     <View style={[styles.fieldContainer, { flex: 1 }]}>
-                                        <Text style={styles.label}>GENDER</Text>
+                                        <Text style={[styles.label, isTablet && { fontSize: 11 }]}>GENDER</Text>
                                         <TouchableOpacity
-                                            style={styles.inputWrapper}
+                                            style={[styles.inputWrapper, isTablet && { height: 52, borderRadius: 12 }]}
                                             onPress={() => setGenderModalVisible(true)}
                                         >
-                                            <Text style={styles.input}>{gender}</Text>
-                                            <ChevronDown size={20} color="rgba(255,255,255,0.3)" style={{ position: 'absolute', right: 16 }} />
+                                            <Text style={[styles.input, isTablet && { fontSize: 15 }]}>{gender}</Text>
+                                            <ChevronDown size={isTablet ? 24 : 20} color="rgba(255,255,255,0.3)" style={{ position: 'absolute', right: 16 }} />
                                         </TouchableOpacity>
                                     </View>
                                 </View>
 
                                 <View style={styles.fieldContainer}>
-                                    <Text style={styles.label}>
+                                    <Text style={[styles.label, isTablet && { fontSize: 11 }]}>
                                         EMAIL
-                                        {isEmailChecking && <Text style={styles.checkingText}> (CHECKING...)</Text>}
-                                        {!isEmailAvailable && <Text style={styles.errorText}> (ALREADY IN USE)</Text>}
-                                        {emailError ? <Text style={styles.errorText}> ({emailError.toUpperCase()})</Text> : null}
+                                        {isEmailChecking && <Text style={[styles.checkingText, isTablet && { fontSize: 9 }]}> (CHECKING...)</Text>}
+                                        {!isEmailAvailable && <Text style={[styles.errorText, isTablet && { fontSize: 9 }]}> (ALREADY IN USE)</Text>}
+                                        {emailError ? <Text style={[styles.errorText, isTablet && { fontSize: 9 }]}> ({emailError.toUpperCase()})</Text> : null}
                                     </Text>
-                                    <View style={[styles.inputWrapper, (!isEmailAvailable || emailError) ? styles.inputWrapperError : null]}>
+                                    <View style={[styles.inputWrapper, (!isEmailAvailable || emailError) ? styles.inputWrapperError : null, isTablet && { height: 52, borderRadius: 12 }]}>
                                         <TextInput
-                                            style={styles.input}
+                                            style={[styles.input, isTablet && { fontSize: 15 }]}
                                             placeholder="client@email.com"
                                             placeholderTextColor="rgba(255,255,255,0.2)"
                                             keyboardType="email-address"
@@ -358,10 +385,10 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                                 </View>
 
                                 <View style={styles.fieldContainer}>
-                                    <Text style={styles.label}>ADDRESS</Text>
-                                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: 64, paddingVertical: 10 }]}>
+                                    <Text style={[styles.label, isTablet && { fontSize: 11 }]}>ADDRESS</Text>
+                                    <View style={[styles.inputWrapper, { height: 'auto', minHeight: isTablet ? 82 : 64, paddingVertical: 10 }, isTablet && { borderRadius: 12 }]}>
                                         <TextInput
-                                            style={[styles.input, { height: 44, textAlignVertical: 'top' }]}
+                                            style={[styles.input, { height: isTablet ? 60 : 44, textAlignVertical: 'top' }, isTablet && { fontSize: 15 }]}
                                             placeholder="Client's location..."
                                             placeholderTextColor="rgba(255,255,255,0.2)"
                                             multiline
@@ -372,37 +399,49 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                                 </View>
 
                                 <View style={styles.fieldContainer}>
-                                    <Text style={styles.label}>ADDITIONAL ATTACHMENT / ID SCAN</Text>
+                                    <Text style={[styles.label, isTablet && { fontSize: 11 }]}>ADDITIONAL ATTACHMENT / ID SCAN</Text>
                                     <TouchableOpacity
-                                        style={[styles.attachmentBtn, (attachment !== '') && styles.attachmentBtnActive]}
+                                        style={[styles.attachmentBtn, (attachment !== '') && styles.attachmentBtnActive, isTablet && { height: 64, borderRadius: 14 }]}
                                         onPress={pickAttachment}
                                     >
+                                        <LinearGradient
+                                            colors={attachment ? ['rgba(197, 160, 89, 0.15)', 'rgba(197, 160, 89, 0.05)'] : ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']}
+                                            style={StyleSheet.absoluteFill}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 0, y: 1 }}
+                                        />
                                         {attachment ? (
                                             <View style={styles.attachmentPreview}>
-                                                <Image source={{ uri: attachment }} style={styles.attachmentImg} />
-                                                <Text style={styles.attachmentName} numberOfLines={1}>Identity Document Attached</Text>
-                                                <X size={16} color="#FFF" onPress={() => { setAttachment(''); setAttachmentFile(null); }} />
+                                                <Image source={{ uri: attachment }} style={[styles.attachmentImg, isTablet && { width: 44, height: 44 }]} />
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[styles.attachmentName, isTablet && { fontSize: 12 }]} numberOfLines={1}>DOC_IDENT_VERIFIED.EXP</Text>
+                                                    <Text style={[styles.statusText, isTablet && { fontSize: 9 }]}>STATUS: READY_FOR_UPLOAD</Text>
+                                                </View>
+                                                <TouchableOpacity onPress={() => { setAttachment(''); setAttachmentFile(null); }} style={styles.removeBtn}>
+                                                    <X size={14} color="#FFF" />
+                                                </TouchableOpacity>
                                             </View>
                                         ) : (
-                                            <>
-                                                <Camera size={20} color="rgba(255,255,255,0.4)" style={{ marginRight: 12 }} />
-                                                <Text style={styles.attachmentText}>UPLOAD VERIFICATION DOCUMENT</Text>
-                                            </>
+                                            <View style={styles.scannerContent}>
+                                                <Camera size={isTablet ? 24 : 18} color="#C5A059" style={{ opacity: 0.6 }} />
+                                                <Text style={[styles.attachmentText, isTablet && { fontSize: 11 }]}>INITIALIZE ID SCANNER</Text>
+                                            </View>
                                         )}
                                     </TouchableOpacity>
                                 </View>
                             </View>
                         </View>
 
-                        <View style={styles.footer}>
-                            <TouchableOpacity style={styles.abortBtn} onPress={onClose}>
-                                <Text style={styles.abortText}>CANCEL</Text>
+                        <View style={[styles.footer, isTablet && { marginTop: 12, gap: 16 }]}>
+                            <TouchableOpacity style={[styles.abortBtn, isTablet && { height: 48, borderRadius: 10 }]} onPress={onClose}>
+                                <Text style={[styles.abortText, isTablet && { fontSize: 12 }]}>CANCEL</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={[
                                     styles.provisionBtn,
-                                    (mutation.isPending || !isPhoneAvailable || isPhoneChecking || !isEmailAvailable || isEmailChecking || !!emailError) && styles.btnDisabled
+                                    (mutation.isPending || !isPhoneAvailable || isPhoneChecking || !isEmailAvailable || isEmailChecking || !!emailError) && styles.btnDisabled,
+                                    isTablet && { height: 54, borderRadius: 12 }
                                 ]}
                                 onPress={handleSubmit}
                                 disabled={mutation.isPending || !isPhoneAvailable || isPhoneChecking || !isEmailAvailable || isEmailChecking || !!emailError}
@@ -411,14 +450,14 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                                     <ActivityIndicator color="#000" />
                                 ) : (
                                     <>
-                                        <Text style={styles.provisionText}>{isEditing ? 'SAVE CHANGES' : 'SAVE CLIENT'}</Text>
-                                        <ArrowRight size={20} color="#000" strokeWidth={2.5} />
+                                        <Text style={[styles.provisionText, isTablet && { fontSize: 14 }]}>{isEditing ? 'SAVE CHANGES' : 'SAVE CLIENT'}</Text>
+                                        <ArrowRight size={isTablet ? 22 : 20} color="#000" strokeWidth={2.5} />
                                     </>
                                 )}
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
-                </LinearGradient>
+                </View>
             </KeyboardAvoidingView>
 
             <SelectionModal
@@ -443,39 +482,56 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'center',
-        padding: 20,
+        alignItems: 'center',
+    },
+    modalContent: {
+        width: '90%',
+        maxHeight: '96%',
+        backgroundColor: '#0F1115',
+        borderRadius: 28,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
     },
     container: {
-        width: '100%',
-        backgroundColor: '#0F1115',
+        ...StyleSheet.absoluteFillObject,
     },
-    containerTablet: {
-        borderRadius: 32,
-        borderWidth: 1,
-        borderColor: 'rgba(197, 160, 89, 0.2)',
-        overflow: 'hidden',
-        maxHeight: 650,
-        maxWidth: 900,
-        alignSelf: 'center',
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: Colors.primary,
+        opacity: 0.1,
+        transform: [{ scale: 2.5 }],
     },
     scrollContent: {
-        padding: 40,
+        padding: 16,
+        paddingTop: 24,
+        flexGrow: 1,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 32,
+        alignItems: 'baseline',
+        marginBottom: 8,
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 18,
         fontWeight: '900',
         fontStyle: 'italic',
         color: '#F8FAFC',
-        letterSpacing: -1,
-        marginBottom: 8,
+        letterSpacing: -0.5,
+        marginBottom: 2,
     },
     headerSubtitleRow: {
         flexDirection: 'row',
@@ -488,34 +544,34 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.primary,
     },
     headerSubtitle: {
-        fontSize: 10,
+        fontSize: 8,
         fontWeight: '800',
         color: Colors.primary,
-        letterSpacing: 3,
+        letterSpacing: 2,
     },
     authTag: {
         alignItems: 'flex-end',
     },
     authLabel: {
-        fontSize: 8,
+        fontSize: 6,
         fontWeight: '800',
         color: '#64748B',
-        letterSpacing: 2,
-        marginBottom: 4,
+        letterSpacing: 1,
+        marginBottom: 1,
     },
     authValue: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '900',
         color: Colors.primary,
         fontStyle: 'italic',
     },
     mainContent: {
         flexDirection: 'column',
-        gap: 32,
+        gap: 12,
     },
-    mainContentTablet: {
+    topSection: {
         flexDirection: 'row',
-        gap: 60,
+        alignItems: 'center',
     },
     imageSection: {
         alignItems: 'center',
@@ -524,103 +580,95 @@ const styles = StyleSheet.create({
         width: 200,
     },
     imagePlaceholder: {
-        width: 180,
-        height: 180,
+        width: 70,
+        height: 70,
         backgroundColor: '#1E1E26',
-        borderRadius: 32,
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
         position: 'relative',
     },
     imagePlaceholderText: {
-        fontSize: 10,
+        fontSize: 8,
         color: 'rgba(255,255,255,0.3)',
         fontWeight: '700',
-        marginTop: 12,
+        marginTop: 4,
         fontStyle: 'italic',
     },
     cameraBtn: {
         position: 'absolute',
-        bottom: -10,
-        right: -10,
+        bottom: -4,
+        right: -4,
         backgroundColor: '#FFF',
-        width: 44,
-        height: 44,
-        borderRadius: 16,
+        width: 28,
+        height: 28,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    imageHint: {
-        textAlign: 'center',
-        fontSize: 8,
-        color: '#64748B',
-        fontWeight: '800',
-        lineHeight: 16,
-        letterSpacing: 2,
-    },
     formSection: {
         flex: 1,
-        gap: 20,
-    },
-    fieldContainer: {
         gap: 8,
     },
+    fieldContainer: {
+        gap: 3,
+    },
     label: {
-        fontSize: 9,
+        fontSize: 7,
         color: Colors.primary,
         fontWeight: '800',
-        letterSpacing: 2,
+        letterSpacing: 1,
     },
     inputWrapper: {
-        height: 56,
+        height: 40,
         backgroundColor: '#1A1A22',
-        borderRadius: 12,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
         justifyContent: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     phoneInputWrapper: {
-        height: 56,
+        height: 40,
         backgroundColor: '#1A1A22',
-        borderRadius: 12,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     phonePrefix: {
         color: Colors.primary,
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
     },
     input: {
         flex: 1,
         color: '#F8FAFC',
-        fontSize: 16,
+        fontSize: 12,
         fontWeight: '600',
         fontStyle: 'italic',
     },
     row: {
         flexDirection: 'row',
-        gap: 20,
+        gap: 10,
     },
     footer: {
-        marginTop: 40,
+        marginTop: 8,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 20,
+        gap: 12,
+        paddingBottom: 20,
     },
     abortBtn: {
         flex: 1,
-        paddingVertical: 18,
+        paddingVertical: 12,
         backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 12,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
@@ -635,12 +683,12 @@ const styles = StyleSheet.create({
     provisionBtn: {
         flex: 2,
         backgroundColor: '#FFF',
-        height: 56,
-        borderRadius: 12,
+        height: 44,
+        borderRadius: 8,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 12,
+        gap: 8,
     },
     btnDisabled: {
         opacity: 0.5,
@@ -661,51 +709,71 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     provisionText: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#000',
         fontWeight: '900',
-        letterSpacing: 3,
+        letterSpacing: 2,
         fontStyle: 'italic',
     },
     attachmentBtn: {
-        height: 60,
-        backgroundColor: '#1A1A22',
-        borderRadius: 16,
+        height: 48,
+        backgroundColor: 'transparent',
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        borderStyle: 'dashed',
+        borderColor: 'rgba(197, 160, 89, 0.15)',
+        overflow: 'hidden',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+    },
+    attachmentBtnActive: {
+        borderColor: '#C5A059',
+        borderWidth: 1.5,
+    },
+    scannerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 20,
-    },
-    attachmentBtnActive: {
-        borderColor: Colors.primary,
-        backgroundColor: 'rgba(197, 160, 89, 0.05)',
-        borderStyle: 'solid',
+        gap: 12,
     },
     attachmentText: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
+        fontSize: 9,
+        color: '#C5A059',
         fontWeight: '900',
         letterSpacing: 2,
+        opacity: 0.8,
     },
     attachmentPreview: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
     },
     attachmentImg: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
+        width: 32,
+        height: 32,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     attachmentName: {
-        flex: 1,
         color: '#FFF',
-        fontSize: 12,
-        fontWeight: '600',
+        fontSize: 10,
+        fontWeight: '900',
         fontStyle: 'italic',
+        letterSpacing: 0.5,
+    },
+    statusText: {
+        fontSize: 7,
+        color: '#C5A059',
+        fontWeight: '800',
+        opacity: 0.6,
+        marginTop: 1,
+    },
+    removeBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

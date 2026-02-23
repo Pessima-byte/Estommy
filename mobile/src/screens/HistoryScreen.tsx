@@ -65,7 +65,7 @@ export default function HistoryScreen() {
 
     // Responsive Layout
     const isTablet = width >= 768;
-    const isDesktop = width >= 1024;
+    const isDesktop = width >= 768;
     const gap = Spacing.lg;
     const totalPadding = Spacing.xl * 2;
     const sidebarWidth = isDesktop ? 240 : 0;

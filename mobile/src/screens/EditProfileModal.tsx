@@ -98,64 +98,68 @@ export default function EditProfileModal({ visible, onClose }: EditProfileModalP
                         colors={['#1E1E26', '#12121A']}
                         style={styles.container}
                     >
+                        {/* Atmosphere Layer */}
+                        <View style={styles.atmosphereGlow} pointerEvents="none" />
+
                         <View style={styles.header}>
-                            <View>
-                                <Text style={styles.headerTitle}>EDIT IDENTITY</Text>
-                                <View style={styles.headerLineRow}>
-                                    <View style={styles.headerLine} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.headerTitle} numberOfLines={1}>EDIT IDENTITY</Text>
+                                <View style={styles.headerSubtitleRow}>
+                                    <View style={styles.subtitleLine} />
                                     <Text style={styles.headerSubtitle}>CORE PROFILE DATA</Text>
                                 </View>
                             </View>
                             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                                <X size={24} color="#FFF" />
+                                <X size={20} color="rgba(255,255,255,0.4)" />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.avatarSection}>
-                            <TouchableOpacity style={styles.avatarWrapper} onPress={pickImage} disabled={uploading}>
+                            <TouchableOpacity style={styles.avatarWrapper} onPress={pickImage} disabled={uploading} activeOpacity={0.8}>
+                                <View style={styles.technicalRing} />
                                 {image ? (
                                     <Image source={{ uri: image }} style={styles.avatarImg} contentFit="cover" />
                                 ) : (
                                     <View style={styles.avatarPlaceholder}>
-                                        <User size={40} color="#C5A059" />
+                                        <User size={32} color="#C5A059" />
                                     </View>
                                 )}
                                 <View style={styles.cameraBadge}>
                                     {uploading ? (
                                         <ActivityIndicator size="small" color="#000" />
                                     ) : (
-                                        <Camera size={14} color="#000" />
+                                        <Camera size={12} color="#000" strokeWidth={2.5} />
                                     )}
                                 </View>
                             </TouchableOpacity>
-                            <Text style={styles.avatarHint}>TAP TO CHANGE AVATAR</Text>
+                            <Text style={styles.avatarHint}>PRIMARY_IDENT_CAPTURE</Text>
                         </View>
 
                         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                             <View style={styles.fieldGroup}>
-                                <Text style={styles.label}>FULL NAME</Text>
+                                <Text style={styles.fieldLabel}>FULL NAME</Text>
                                 <View style={styles.inputBox}>
-                                    <User size={18} color="#C5A059" />
+                                    <User size={16} color="#C5A059" opacity={0.5} />
                                     <TextInput
                                         style={styles.input}
                                         value={name}
                                         onChangeText={setName}
-                                        placeholder="Enter your name"
-                                        placeholderTextColor="#475569"
+                                        placeholder="Full system identity"
+                                        placeholderTextColor="rgba(255,255,255,0.1)"
                                     />
                                 </View>
                             </View>
 
                             <View style={styles.fieldGroup}>
-                                <Text style={styles.label}>EMAIL ADDRESS</Text>
+                                <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
                                 <View style={styles.inputBox}>
-                                    <Mail size={18} color="#C5A059" />
+                                    <Mail size={16} color="#C5A059" opacity={0.5} />
                                     <TextInput
                                         style={styles.input}
                                         value={email}
                                         onChangeText={setEmail}
-                                        placeholder="Enter your email"
-                                        placeholderTextColor="#475569"
+                                        placeholder="Electronic mail coordinates"
+                                        placeholderTextColor="rgba(255,255,255,0.1)"
                                         keyboardType="email-address"
                                         autoCapitalize="none"
                                     />
@@ -163,30 +167,30 @@ export default function EditProfileModal({ visible, onClose }: EditProfileModalP
                             </View>
 
                             <View style={styles.fieldGroup}>
-                                <Text style={styles.label}>CONTACT PHONE</Text>
+                                <Text style={styles.fieldLabel}>CONTACT PHONE</Text>
                                 <View style={styles.inputBox}>
-                                    <Phone size={18} color="#C5A059" />
+                                    <Phone size={16} color="#C5A059" opacity={0.5} />
                                     <TextInput
                                         style={styles.input}
                                         value={phone}
                                         onChangeText={setPhone}
-                                        placeholder="Enter your phone"
-                                        placeholderTextColor="#475569"
+                                        placeholder="Voice comms link"
+                                        placeholderTextColor="rgba(255,255,255,0.1)"
                                         keyboardType="phone-pad"
                                     />
                                 </View>
                             </View>
 
                             <View style={styles.fieldGroup}>
-                                <Text style={styles.label}>NEW PASSWORD (LEAVE BLANK TO KEEP)</Text>
+                                <Text style={styles.fieldLabel}>NEW PASSWORD (PROTECTION_CODE)</Text>
                                 <View style={styles.inputBox}>
-                                    <Lock size={18} color="#C5A059" />
+                                    <Lock size={16} color="#C5A059" opacity={0.5} />
                                     <TextInput
                                         style={styles.input}
                                         value={password}
                                         onChangeText={setPassword}
                                         placeholder="••••••••"
-                                        placeholderTextColor="#475569"
+                                        placeholderTextColor="rgba(255,255,255,0.1)"
                                         secureTextEntry
                                     />
                                 </View>
@@ -196,14 +200,14 @@ export default function EditProfileModal({ visible, onClose }: EditProfileModalP
                                 style={[styles.saveBtn, (updating || uploading) && styles.saveBtnDisabled]}
                                 onPress={handleSave}
                                 disabled={updating || uploading}
+                                activeOpacity={0.8}
                             >
                                 {updating ? (
                                     <ActivityIndicator color="#000" />
                                 ) : (
-                                    <>
-                                        <Save size={18} color="#000" />
-                                        <Text style={styles.saveBtnText}>COMMIT CHANGES</Text>
-                                    </>
+                                    <View style={styles.btnContent}>
+                                        <Text style={styles.saveBtnText}>COMMIT_IDENTITY</Text>
+                                    </View>
                                 )}
                             </TouchableOpacity>
                         </ScrollView>
@@ -229,134 +233,172 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         borderRadius: 32,
-        padding: 32,
+        padding: 24,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+    },
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: '#C5A059',
+        opacity: 0.08,
+        transform: [{ scale: 2.5 }],
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 32,
+        alignItems: 'baseline',
+        marginBottom: 24,
     },
     headerTitle: {
-        fontSize: 24,
+        fontSize: 13,
         fontWeight: '900',
+        fontStyle: 'italic',
         color: '#FFF',
-        letterSpacing: -1,
+        letterSpacing: 0,
+        marginBottom: 2,
     },
-    headerLineRow: {
+    headerSubtitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginTop: 4,
     },
-    headerLine: {
+    subtitleLine: {
         width: 20,
         height: 2,
         backgroundColor: '#C5A059',
     },
     headerSubtitle: {
-        fontSize: 9,
+        fontSize: 8,
         fontWeight: '800',
         color: '#C5A059',
-        letterSpacing: 2,
+        letterSpacing: 1.5,
     },
     closeBtn: {
         padding: 4,
     },
     scrollContent: {
-        gap: 20,
+        gap: 16,
     },
     fieldGroup: {
         gap: 8,
     },
-    label: {
-        fontSize: 9,
+    fieldLabel: {
+        fontSize: 7,
         fontWeight: '900',
-        color: '#475569',
+        color: '#C5A059',
         letterSpacing: 1.5,
-        paddingLeft: 4,
+        fontStyle: 'italic',
     },
     inputBox: {
-        height: 56,
-        backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 16,
+        height: 48,
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
         gap: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(255,255,255,0.06)',
     },
     input: {
         flex: 1,
         color: '#FFF',
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '800',
+        fontStyle: 'italic',
     },
     saveBtn: {
         backgroundColor: '#FFF',
-        height: 56,
-        borderRadius: 16,
-        flexDirection: 'row',
+        height: 52,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 10,
         marginTop: 12,
+        shadowColor: '#FFF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+    },
+    btnContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     saveBtnDisabled: {
-        opacity: 0.7,
+        opacity: 0.5,
     },
     saveBtnText: {
         color: '#000',
         fontSize: 12,
         fontWeight: '900',
         letterSpacing: 2,
+        fontStyle: 'italic',
     },
     avatarSection: {
         alignItems: 'center',
-        marginBottom: 32,
+        marginBottom: 24,
     },
     avatarWrapper: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         position: 'relative',
-        borderWidth: 2,
-        borderColor: '#C5A059',
-        padding: 4,
-    },
-    avatarImg: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 46,
-    },
-    avatarPlaceholder: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 46,
-        backgroundColor: 'rgba(255,255,255,0.05)',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    technicalRing: {
+        position: 'absolute',
+        top: -4,
+        left: -4,
+        right: -4,
+        bottom: -4,
+        borderRadius: 44,
+        borderWidth: 1,
+        borderColor: 'rgba(197, 160, 89, 0.2)',
+        borderStyle: 'dashed',
+    },
+    avatarImg: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        borderWidth: 1,
+        borderColor: 'rgba(197, 160, 89, 0.3)',
+    },
+    avatarPlaceholder: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(197, 160, 89, 0.1)',
     },
     cameraBadge: {
         position: 'absolute',
         bottom: 0,
         right: 0,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         backgroundColor: '#C5A059',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
+        borderWidth: 2,
         borderColor: '#12121A',
+        elevation: 4,
     },
     avatarHint: {
-        fontSize: 8,
-        color: '#C5A059',
+        fontSize: 7,
+        color: 'rgba(197, 160, 89, 0.4)',
         fontWeight: '900',
+        fontStyle: 'italic',
         letterSpacing: 2,
         marginTop: 12,
     },

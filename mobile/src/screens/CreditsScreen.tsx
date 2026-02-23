@@ -10,56 +10,11 @@ import AddCreditRecordScreen from './AddCreditRecordScreen';
 import { Modal } from 'react-native';
 import { exportToCSV } from '../utils/export';
 import { ActivityLogger } from '../utils/activityLogger';
+import CreditLedgerItem from '../components/CreditLedgerItem';
 
-const CreditLedgerItem = React.memo(({ item, onSettle }: { item: any, onSettle: (credit: any) => void }) => {
-    const isPaid = item.status === 'Paid';
-    const amountDue = item.liability || (item.amount - (item.amountPaid || 0));
 
-    return (
-        <TouchableOpacity
-            style={styles.ledgerItem}
-            onPress={() => onSettle(item)}
-            activeOpacity={0.7}
-        >
-            <View style={styles.ledgerLeft}>
-                <View style={styles.ledgerIconContainer}>
-                    <DollarIcon color="#C5A059" size={20} />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.ledgerCustomerName} numberOfLines={1}>{item.customerName || 'N/A'}</Text>
-                    {item.notes ? (
-                        <Text style={styles.ledgerNotes} numberOfLines={1}>{item.notes}</Text>
-                    ) : (
-                        <Text style={styles.ledgerTimestamp}>RECENT TRANSACTION</Text>
-                    )}
-                </View>
-            </View>
 
-            <View style={styles.ledgerRight}>
-                <View style={styles.ledgerAmountContainer}>
-                    <Text style={styles.ledgerAmountLabel}>AMOUNT DUE</Text>
-                    <View style={styles.ledgerAmountRow}>
-                        <Text style={styles.ledgerCurrency}>LE</Text>
-                        <Text style={styles.ledgerAmountValue}>{amountDue.toLocaleString()}</Text>
-                    </View>
-                </View>
-                <View style={[styles.ledgerStatusBadge, {
-                    backgroundColor: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
-                    borderColor: isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.1)'
-                }]}>
-                    <Text style={[styles.ledgerStatusText, { color: isPaid ? '#10B981' : '#94A3B8' }]}>
-                        {isPaid ? 'PAID' : 'PARTIAL'}
-                    </Text>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-});
 
-// Use simple icon if lucide doesn't have it directly or use existing
-const DollarIcon = ({ color, size }: any) => (
-    <Text style={{ color, fontSize: size, fontWeight: 'bold' }}>$</Text>
-);
 
 export default function CreditsScreen() {
     const { credits, loading, refetch } = useCredits();
@@ -95,80 +50,78 @@ export default function CreditsScreen() {
 
     const headerComponent = useMemo(() => (
         <View>
-            <View style={styles.heroContainer}>
-                <LinearGradient colors={['#1F1F2B', '#111118']} style={styles.heroCard}>
-                    <View style={styles.heroHeaderRow}>
-                        <View style={{ flex: 1 }}>
-                            <View style={styles.brandSubtitleRow}>
-                                <View style={styles.brandLine} />
-                                <Text style={styles.brandSubtitle}>ACCOUNTS RECEIVABLE balance</Text>
-                            </View>
-                            <Text style={styles.heroTitle}>CREDIT LEDGER</Text>
+            <LinearGradient colors={['#1E1E26', '#12121A']} style={styles.heroCard}>
+                <View style={styles.heroHeaderRow}>
+                    <View style={styles.brandContainer}>
+                        <View style={styles.brandSubtitleRow}>
+                            <View style={styles.brandLine} />
+                            <Text style={styles.brandSubtitle} numberOfLines={1}>CREDIT_INTELLIGENCE</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
-                            <TouchableOpacity
-                                style={[styles.addBtn, { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
-                                activeOpacity={0.8}
-                                onPress={async () => {
-                                    try {
-                                        await exportToCSV(
-                                            credits,
-                                            [
-                                                { header: 'ID', key: 'id' },
-                                                { header: 'Customer', key: 'customerName' },
-                                                { header: 'Amount (LE)', key: 'amount' },
-                                                { header: 'Paid (LE)', key: 'amountPaid' },
-                                                { header: 'Due (LE)', key: 'liability' },
-                                                { header: 'Status', key: 'status' },
-                                                { header: 'Date', key: (c: any) => new Date(c.createdAt).toLocaleDateString() },
-                                                { header: 'Notes', key: (c: any) => c.notes || '' }
-                                            ],
-                                            'ESTOMMY_Credits_Report',
-                                            'Export Credit Records'
-                                        );
-                                        await ActivityLogger.logExport('CREDIT', credits.length);
-                                    } catch (e) {
-                                        console.error(e);
-                                    }
-                                }}
-                            >
-                                <Download size={20} color="#C5A059" />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={() => setShowAdd(true)}>
-                                <Plus size={20} color="#000" />
-                            </TouchableOpacity>
+                    </View>
+                    <View style={styles.headerMetrics}>
+                        <Text style={styles.metricLabel} numberOfLines={1}>TOTAL_LIABILITY</Text>
+                        <View style={styles.metricValueRow}>
+                            <Text style={styles.metricCurrency}>LE</Text>
+                            <Text style={styles.metricValue} numberOfLines={1}>{totalOutstanding.toLocaleString()}</Text>
                         </View>
+                    </View>
+                </View>
+
+                <View style={styles.headerMain}>
+                    <View style={styles.titleWrapper}>
+                        <Text style={styles.heroTitle}>CREDIT LEDGER</Text>
+                        <Text style={styles.heroSubtitle}>Monitor accounts receivable, track pending settlements and analyze liability flow.</Text>
                     </View>
 
-                    <View style={styles.intelligenceGrid}>
-                        <View style={styles.intelCard}>
-                            <Text style={styles.intelLabel}>RECORDS tracked</Text>
-                            <Text style={styles.intelValue}>{totalRecords}</Text>
-                        </View>
-                        <View style={styles.intelCard}>
-                            <Text style={[styles.intelLabel, { color: '#C5A059' }]}>OUTSTANDING DUe</Text>
-                            <View style={styles.intelValueRow}>
-                                <Text style={styles.intelCurrency}>LE</Text>
-                                <Text style={styles.intelValue}>{totalOutstanding.toLocaleString()}</Text>
-                            </View>
-                        </View>
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity
+                            style={styles.exportBtn}
+                            activeOpacity={0.8}
+                            onPress={async () => {
+                                try {
+                                    await exportToCSV(
+                                        credits,
+                                        [
+                                            { header: 'ID', key: 'id' },
+                                            { header: 'Customer', key: 'customerName' },
+                                            { header: 'Amount (LE)', key: 'amount' },
+                                            { header: 'Paid (LE)', key: 'amountPaid' },
+                                            { header: 'Due (LE)', key: 'liability' },
+                                            { header: 'Status', key: 'status' },
+                                            { header: 'Date', key: (c: any) => new Date(c.createdAt).toLocaleDateString() },
+                                            { header: 'Notes', key: (c: any) => c.notes || '' }
+                                        ],
+                                        'credit_ledger_report',
+                                        'Export Credit Records'
+                                    );
+                                    await ActivityLogger.logExport('CREDIT', credits.length);
+                                } catch (e) {
+                                    console.error(e);
+                                }
+                            }}
+                        >
+                            <Text style={styles.exportBtnText}>EXPORT</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={() => setShowAdd(true)}>
+                            <Text style={styles.addBtnText}>ADD NEW</Text>
+                        </TouchableOpacity>
                     </View>
-                </LinearGradient>
-            </View>
+                </View>
+            </LinearGradient>
 
             <View style={styles.searchRow}>
                 <View style={styles.searchBox}>
-                    <Search size={18} color="#475569" style={{ marginRight: 8 }} />
+                    <Search size={18} color="#475569" />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search records..."
-                        placeholderTextColor="#334155"
+                        placeholder="Search by customer name or ID..."
+                        placeholderTextColor="#475569"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
                 </View>
                 <TouchableOpacity style={styles.sortBtn} onPress={() => setSortModalVisible(true)}>
-                    <ArrowUpDown size={20} color={sortBy === 'newest' ? '#334155' : Colors.primary} />
+                    <ArrowUpDown size={18} color={sortBy === 'newest' ? '#64748B' : Colors.primary} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -176,15 +129,27 @@ export default function CreditsScreen() {
 
     const keyExtractor = useCallback((item: any) => item.id, []);
 
-    const renderItem = useCallback(({ item }: { item: any }) => (
+    const renderItem = useCallback(({ item, index }: { item: any; index: number }) => (
         <CreditLedgerItem
             item={item}
             onSettle={setSelectedCredit}
+            index={index}
         />
     ), [setSelectedCredit]);
 
     return (
         <SafeAreaView style={styles.container}>
+            <LinearGradient
+                colors={['#060609', '#0F172A', '#060608']}
+                style={StyleSheet.absoluteFillObject}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                pointerEvents="none"
+            />
+            {/* Atmosphere Layer */}
+            <View style={styles.atmosphereGlow} pointerEvents="none" />
+            <View style={[styles.atmosphereGlow, { top: '40%', left: -100, opacity: 0.03, backgroundColor: '#00D9FF' }]} pointerEvents="none" />
+
             <FlatList
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
@@ -267,126 +232,165 @@ export default function CreditsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0A0C10',
     },
     scrollContent: {
-        padding: Spacing.xl,
+        paddingTop: Spacing.md,
+        paddingHorizontal: 8,
     },
-    heroContainer: {
-        marginBottom: 32,
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: Colors.primary,
+        opacity: 0.08,
+        transform: [{ scale: 2.5 }],
     },
     heroCard: {
-        padding: 24,
-        borderRadius: 28,
+        padding: 20,
+        borderRadius: 24,
+        marginBottom: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     heroHeaderRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
         justifyContent: 'space-between',
-        marginBottom: 24,
+        alignItems: 'center',
+        marginBottom: 16,
+        gap: 12,
+    },
+    brandContainer: {
+        flex: 1,
     },
     brandSubtitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginBottom: 4,
     },
     brandLine: {
-        width: 16,
+        width: 20,
         height: 2,
-        backgroundColor: '#C5A059',
+        backgroundColor: Colors.primary,
     },
     brandSubtitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#94A3B8',
+        fontSize: 9,
+        fontWeight: '800',
+        color: Colors.primary,
         letterSpacing: 2,
     },
-    heroTitle: {
-        fontSize: 28,
+    headerMetrics: {
+        alignItems: 'flex-end',
+        borderLeftWidth: 1,
+        borderLeftColor: 'rgba(255,255,255,0.1)',
+        paddingLeft: 12,
+    },
+    metricLabel: {
+        fontSize: 7,
         fontWeight: '900',
-        color: '#F8FAFC',
-        letterSpacing: -0.5,
+        color: Colors.primary,
+        letterSpacing: 1,
+        marginBottom: 2,
     },
-    addBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        backgroundColor: '#C5A059',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#C5A059',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    intelligenceGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-    },
-    intelCard: {
-        flex: 1,
-        minWidth: '45%',
-        padding: 16,
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.04)',
-    },
-    intelLabel: {
-        fontSize: 9,
-        fontWeight: '900',
-        color: '#64748B',
-        letterSpacing: 1.2,
-        marginBottom: 8,
-    },
-    intelValue: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#F8FAFC',
-    },
-    intelValueRow: {
+    metricValueRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        gap: 4,
+        gap: 2,
     },
-    intelCurrency: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#C5A059',
+    metricCurrency: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: 'rgba(255,255,255,0.4)',
+    },
+    metricValue: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#FFF',
+    },
+    headerMain: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 16,
+    },
+    titleWrapper: {
+        flex: 1,
+        minWidth: 200,
+    },
+    heroTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFF',
+        letterSpacing: -0.5,
+        marginBottom: 4,
+    },
+    heroSubtitle: {
+        fontSize: 11,
+        color: '#64748B',
+        lineHeight: 16,
+        maxWidth: 400,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 12,
+    },
+    exportBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    exportBtnText: {
+        color: '#FFF',
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
+    addBtn: {
+        backgroundColor: '#FFF',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    addBtnText: {
+        color: '#000',
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
     searchRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
         marginBottom: 20,
     },
     searchBox: {
         flex: 1,
-        height: 48,
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
-        paddingHorizontal: 16,
+        height: 44,
+        backgroundColor: '#111827',
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 12,
+        gap: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     searchInput: {
         flex: 1,
-        color: '#F8FAFC',
+        color: '#FFF',
         fontSize: 13,
-        fontWeight: '700',
     },
     sortBtn: {
-        width: 48,
-        height: 48,
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 14,
+        width: 44,
+        height: 44,
+        backgroundColor: '#111827',
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
@@ -394,29 +398,33 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     filterModalContent: {
-        width: '85%',
+        width: '80%',
         maxWidth: 320,
         backgroundColor: '#1E1E26',
         borderRadius: 24,
-        padding: 24,
+        padding: 32,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
     },
     modalTitle: {
         fontSize: 11,
         fontWeight: '900',
         color: Colors.primary,
         letterSpacing: 2,
-        marginBottom: 20,
+        marginBottom: 24,
         textAlign: 'center',
     },
     filterOption: {
-        paddingVertical: 16,
+        paddingVertical: 18,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.05)',
     },
@@ -426,47 +434,58 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         textAlign: 'center',
     },
-    ledgerList: {
-        gap: 12,
-    },
     ledgerItem: {
         backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 24,
-        padding: 16,
+        borderRadius: 20,
+        padding: 14,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
+        marginBottom: 8,
     },
     ledgerLeft: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        gap: 12,
     },
-    ledgerIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(197, 160, 89, 0.08)',
+    avatarCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(197, 160, 89, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(197, 160, 89, 0.2)',
+    },
+    avatarText: {
+        color: '#C5A059',
+        fontSize: 14,
+        fontWeight: '900',
     },
     ledgerCustomerName: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '900',
         color: '#F8FAFC',
+        textTransform: 'uppercase',
+    },
+    timestampRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 2,
     },
     ledgerTimestamp: {
-        fontSize: 8,
-        fontWeight: '800',
+        fontSize: 7,
+        fontWeight: '900',
         color: '#64748B',
         letterSpacing: 1.2,
-        marginTop: 1,
     },
     ledgerNotes: {
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: '600',
         color: 'rgba(197, 160, 89, 0.6)',
         marginTop: 2,
@@ -475,65 +494,69 @@ const styles = StyleSheet.create({
     ledgerRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: 12,
     },
     ledgerAmountContainer: {
         alignItems: 'flex-end',
     },
     ledgerAmountLabel: {
-        fontSize: 8,
+        fontSize: 7,
         fontWeight: '900',
-        color: '#C5A059',
+        color: 'rgba(197, 160, 89, 0.4)',
         letterSpacing: 1,
         marginBottom: 1,
     },
     ledgerAmountRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        gap: 3,
+        gap: 2,
     },
     ledgerCurrency: {
-        fontSize: 10,
+        fontSize: 8,
         fontWeight: '900',
-        color: 'rgba(248, 250, 252, 0.5)',
+        color: 'rgba(248, 250, 252, 0.3)',
     },
     ledgerAmountValue: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '900',
         color: '#F8FAFC',
     },
     ledgerStatusBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 8,
         borderWidth: 1,
+        minWidth: 60,
+        alignItems: 'center',
     },
     ledgerStatusText: {
-        fontSize: 8,
+        fontSize: 7,
         fontWeight: '900',
-        letterSpacing: 1.2,
+        letterSpacing: 1,
     },
     emptyState: {
-        padding: 48,
+        padding: 40,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
         borderStyle: 'dashed',
         borderColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 32,
+        borderRadius: 24,
         backgroundColor: 'rgba(255,255,255,0.01)',
+        marginTop: 20,
     },
     emptyText: {
-        fontSize: 15,
+        fontSize: 12,
         fontWeight: '900',
         color: 'rgba(255,255,255,0.2)',
-        marginBottom: 6,
+        marginBottom: 4,
+        letterSpacing: 2,
     },
     emptySubtext: {
-        fontSize: 9,
+        fontSize: 8,
         fontWeight: '700',
         color: 'rgba(255,255,255,0.1)',
-        letterSpacing: 1.2,
+        letterSpacing: 1,
         textAlign: 'center',
     },
 });

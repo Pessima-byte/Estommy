@@ -29,132 +29,144 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
     const currentImageUrl = allImages.length > 0 ? getImageUrl(allImages[activeImageIndex]) : null;
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        <Modal visible={visible} animationType="fade" transparent>
             <View style={styles.overlay}>
-                <LinearGradient
-                    colors={['#0F1115', '#08090C']}
-                    style={[styles.container, isTablet && styles.containerTablet]}
-                >
+                <View style={styles.modalContainer}>
+                    <LinearGradient
+                        colors={['#060609', '#0F172A', '#060608']}
+                        style={StyleSheet.absoluteFill}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    />
+                    {/* Atmosphere Glow */}
+                    <View style={styles.atmosphereGlow} pointerEvents="none" />
+
                     {/* Header */}
                     <View style={styles.header}>
-                        <View style={styles.headerTitleRow}>
-                            <Package size={24} color={Colors.primary} />
-                            <View>
-                                <Text style={styles.headerTitle}>PRODUCT SPECIFICATIONS</Text>
-                                <Text style={styles.headerSubtitle}>ASSET UID: {product.id.toUpperCase()}</Text>
+                        <View style={styles.headerTitleContainer}>
+                            <View style={styles.headerIconWrapper}>
+                                <Package size={20} color="#C5A059" strokeWidth={2.5} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text
+                                    style={styles.headerTitle}
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.7}
+                                >
+                                    PRODUCT SPECIFICATIONS
+                                </Text>
+                                <Text
+                                    style={styles.headerSubtitle}
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.7}
+                                >
+                                    ASSET UID: {product.id.substring(0, 24).toUpperCase()}
+                                </Text>
                             </View>
                         </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                            <X size={24} color="#F8FAFC" />
+                            <X size={24} color="rgba(255,255,255,0.4)" strokeWidth={3} />
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                        {/* Image Gallery Section */}
-                        <View style={styles.gallerySection}>
-                            <View style={styles.mainImageWrapper}>
-                                {currentImageUrl ? (
+                        {/* Image Station */}
+                        <View style={styles.imageStation}>
+                            {currentImageUrl ? (
+                                <View style={styles.mainImageWrapper}>
+                                    <Image
+                                        source={{ uri: currentImageUrl }}
+                                        style={styles.mainImage}
+                                        contentFit="cover"
+                                        transition={400}
+                                    />
                                     <TouchableOpacity
-                                        activeOpacity={0.9}
+                                        style={styles.zoomBtn}
                                         onPress={() => setFullScreenImage(currentImageUrl)}
-                                        style={styles.mainImageBtn}
                                     >
-                                        <Image
-                                            source={{ uri: currentImageUrl }}
-                                            style={styles.mainImage}
-                                            contentFit="cover"
-                                            transition={300}
-                                        />
-                                        <View style={styles.zoomBadge}>
-                                            <Maximize2 size={16} color="#000" />
-                                        </View>
+                                        <Maximize2 size={16} color="#000" strokeWidth={3} />
                                     </TouchableOpacity>
-                                ) : (
-                                    <View style={styles.imagePlaceholder}>
-                                        <Package size={64} color="rgba(255,255,255,0.05)" />
-                                    </View>
-                                )}
-
-                                {allImages.length > 1 && (
-                                    <View style={styles.galleryControls}>
-                                        <TouchableOpacity
-                                            style={styles.controlBtn}
-                                            onPress={() => setActiveImageIndex(prev => (prev > 0 ? prev - 1 : allImages.length - 1))}
-                                        >
-                                            <ChevronLeft size={20} color="#FFF" />
-                                        </TouchableOpacity>
-                                        <Text style={styles.galleryCount}>{activeImageIndex + 1} / {allImages.length}</Text>
-                                        <TouchableOpacity
-                                            style={styles.controlBtn}
-                                            onPress={() => setActiveImageIndex(prev => (prev < allImages.length - 1 ? prev + 1 : 0))}
-                                        >
-                                            <ChevronRight size={20} color="#FFF" />
-                                        </TouchableOpacity>
-                                    </View>
-                                )}
-                            </View>
+                                </View>
+                            ) : (
+                                <View style={styles.imagePlaceholder}>
+                                    <Package size={64} color="rgba(197, 160, 89, 0.1)" />
+                                </View>
+                            )}
 
                             {allImages.length > 1 && (
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailsRow}>
-                                    {allImages.map((img, idx) => (
-                                        <TouchableOpacity
-                                            key={idx}
-                                            onPress={() => setActiveImageIndex(idx)}
-                                            style={[styles.thumbnailWrapper, activeImageIndex === idx && styles.thumbnailActive]}
-                                        >
-                                            <Image
-                                                source={{ uri: getImageUrl(img) }}
-                                                style={styles.thumbnail}
-                                            />
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
+                                <View style={styles.thumbnailStation}>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        {allImages.map((img, idx) => (
+                                            <TouchableOpacity
+                                                key={idx}
+                                                onPress={() => setActiveImageIndex(idx)}
+                                                style={[styles.miniThumbnail, activeImageIndex === idx && styles.miniThumbnailActive]}
+                                            >
+                                                <Image
+                                                    source={{ uri: getImageUrl(img) }}
+                                                    style={{ width: '100%', height: '100%', borderRadius: 8 }}
+                                                />
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
                             )}
                         </View>
 
-                        {/* Info Section */}
-                        <View style={styles.detailsGrid}>
+                        {/* Tactical Info Grid */}
+                        <View style={styles.tacticalGrid}>
                             <DetailCard
                                 label="PRODUCT NAME"
                                 value={product.name.toUpperCase()}
                                 icon={Package}
                                 fullWidth
                             />
-                            <DetailCard
-                                label="CATEGORY"
-                                value={product.category.toUpperCase()}
-                                icon={Tag}
-                            />
-                            <DetailCard
-                                label="STOCK STATUS"
-                                value={product.status.toUpperCase()}
-                                icon={Box}
-                                color={product.status === 'In Stock' ? Colors.primary : '#F59E0B'}
-                            />
-                            <DetailCard
-                                label="RETAIL PRICE"
-                                value={`LE ${product.price.toLocaleString()}`}
-                                icon={Wallet}
-                                highlight
-                            />
-                            <DetailCard
-                                label="COST PRICE"
-                                value={`LE ${product.costPrice?.toLocaleString() || '0'}`}
-                                icon={DollarSignIcon}
-                            />
-                            <DetailCard
-                                label="CURRENT STOCK"
-                                value={`${product.stock} UNITS`}
-                                icon={WarehouseIcon}
-                            />
-                            <DetailCard
-                                label="ADDED ON"
-                                value={new Date(product.createdAt).toLocaleDateString()}
-                                icon={Calendar}
-                            />
+
+                            <View style={styles.gridRow}>
+                                <DetailCard
+                                    label="CATEGORY"
+                                    value={product.category.toUpperCase()}
+                                    icon={Tag}
+                                />
+                                <DetailCard
+                                    label="STOCK STATUS"
+                                    value={product.status.toUpperCase()}
+                                    icon={Box}
+                                    valueColor="#C5A059"
+                                />
+                            </View>
+
+                            <View style={styles.gridRow}>
+                                <DetailCard
+                                    label="RETAIL PRICE"
+                                    value={`LE ${product.price.toLocaleString()}`}
+                                    icon={Wallet}
+                                    highlight
+                                />
+                                <DetailCard
+                                    label="COST PRICE"
+                                    value={`LE ${product.costPrice?.toLocaleString() || '0'}`}
+                                    icon={Wallet}
+                                />
+                            </View>
+
+                            <View style={styles.gridRow}>
+                                <DetailCard
+                                    label="CURRENT STOCK"
+                                    value={`${product.stock} UNITS`}
+                                    icon={Package}
+                                />
+                                <DetailCard
+                                    label="ADDED ON"
+                                    value={new Date(product.createdAt).toLocaleDateString('en-GB')}
+                                    icon={Calendar}
+                                />
+                            </View>
                         </View>
                     </ScrollView>
-                </LinearGradient>
+                </View>
             </View>
 
             {/* Custom Full Screen Image Viewer Modal */}
@@ -179,22 +191,23 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
     );
 }
 
-function DollarSignIcon({ size, color }: any) {
-    return <Text style={{ color, fontSize: size, fontWeight: '900' }}>$</Text>;
-}
-
-function WarehouseIcon({ size, color }: any) {
-    return <Box size={size} color={color} />;
-}
-
-function DetailCard({ label, value, icon: Icon, fullWidth, highlight, color }: any) {
+function DetailCard({ label, value, icon: Icon, fullWidth, highlight, valueColor }: any) {
     return (
         <View style={[styles.detailCard, fullWidth && styles.fullWidthCard]}>
-            <View style={styles.detailHeader}>
-                {Icon && <Icon size={12} color={highlight ? Colors.primary : "#475569"} />}
-                <Text style={styles.detailLabel}>{label}</Text>
+            <View style={styles.cardHeader}>
+                <Icon size={10} color="rgba(255,255,255,0.4)" strokeWidth={2} />
+                <Text style={styles.cardLabel} numberOfLines={1}>{label}</Text>
             </View>
-            <Text style={[styles.detailValue, highlight && styles.highlightValue, color ? { color } : {}]}>
+            <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+                style={[
+                    styles.cardValue,
+                    highlight && styles.highlightValue,
+                    valueColor ? { color: valueColor } : {}
+                ]}
+            >
                 {value}
             </Text>
         </View>
@@ -204,46 +217,69 @@ function DetailCard({ label, value, icon: Icon, fullWidth, highlight, color }: a
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.95)',
+        backgroundColor: 'rgba(6, 6, 9, 0.95)',
         justifyContent: 'center',
+        alignItems: 'center',
         padding: 20,
     },
-    container: {
-        flex: 1,
-        borderRadius: 32,
+    modalContainer: {
+        width: '100%',
+        maxWidth: 500,
+        height: '92%',
+        borderRadius: 36,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(255,255,255,0.08)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.5,
+        shadowRadius: 30,
     },
-    containerTablet: {
-        maxWidth: 600,
-        maxHeight: '90%',
-        alignSelf: 'center',
-        width: '100%',
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: '#C5A059',
+        opacity: 0.1,
+        transform: [{ scale: 2.5 }],
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 24,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        padding: 20,
+        paddingTop: 24,
     },
-    headerTitleRow: {
+    headerTitleContainer: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: 12,
+        marginRight: 10,
+    },
+    headerIconWrapper: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: 'rgba(197, 160, 89, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(197, 160, 89, 0.2)',
     },
     headerTitle: {
         fontSize: 14,
         fontWeight: '900',
-        color: '#F8FAFC',
-        letterSpacing: 2,
+        color: '#FFF',
+        letterSpacing: 1,
     },
     headerSubtitle: {
-        fontSize: 9,
-        color: Colors.primary,
-        fontWeight: '700',
+        fontSize: 7,
+        color: 'rgba(197, 160, 89, 0.6)',
+        fontWeight: '900',
         letterSpacing: 1,
         marginTop: 2,
     },
@@ -251,147 +287,114 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'rgba(255,255,255,0.03)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
     scrollContent: {
-        padding: 24,
+        padding: 20,
+        paddingTop: 0,
     },
-    gallerySection: {
-        marginBottom: 32,
+    imageStation: {
+        marginBottom: 24,
     },
     mainImageWrapper: {
         width: '100%',
-        aspectRatio: 1.5,
-        borderRadius: 24,
+        aspectRatio: 1.4,
+        borderRadius: 28,
         overflow: 'hidden',
         backgroundColor: 'rgba(255,255,255,0.02)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
-        position: 'relative',
-    },
-    mainImageBtn: {
-        width: '100%',
-        height: '100%',
     },
     mainImage: {
         width: '100%',
         height: '100%',
     },
-    imagePlaceholder: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    zoomBadge: {
+    zoomBtn: {
         position: 'absolute',
-        bottom: 16,
-        right: 16,
-        width: 36,
-        height: 36,
-        borderRadius: 12,
-        backgroundColor: Colors.primary,
+        bottom: 20,
+        right: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#C5A059',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: Colors.primary,
+        shadowColor: '#C5A059',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.3,
         shadowRadius: 10,
     },
-    galleryControls: {
-        position: 'absolute',
-        bottom: 16,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 20,
-    },
-    controlBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+    imagePlaceholder: {
+        width: '100%',
+        aspectRatio: 1.4,
+        borderRadius: 28,
+        backgroundColor: 'rgba(255,255,255,0.01)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255,255,255,0.03)',
     },
-    galleryCount: {
-        color: '#FFF',
-        fontSize: 12,
-        fontWeight: '900',
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
+    thumbnailStation: {
+        marginTop: 12,
+    },
+    miniThumbnail: {
+        width: 50,
+        height: 50,
         borderRadius: 10,
-        overflow: 'hidden',
-    },
-    thumbnailsRow: {
-        marginTop: 16,
-    },
-    thumbnailWrapper: {
-        width: 70,
-        height: 70,
-        borderRadius: 12,
         marginRight: 10,
-        borderWidth: 2,
-        borderColor: 'transparent',
-        overflow: 'hidden',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
-    thumbnailActive: {
-        borderColor: Colors.primary,
+    miniThumbnailActive: {
+        borderColor: '#C5A059',
     },
-    thumbnail: {
-        width: '100%',
-        height: '100%',
-    },
-    detailsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
+    tacticalGrid: {
+        gap: 12,
     },
     detailCard: {
         flex: 1,
-        minWidth: '45%',
         backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 20,
-        padding: 16,
+        borderRadius: 16,
+        padding: 14,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
     fullWidthCard: {
-        minWidth: '100%',
+        width: '100%',
     },
-    detailHeader: {
+    gridRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
         marginBottom: 8,
     },
-    detailLabel: {
-        fontSize: 9,
-        fontWeight: '800',
-        color: '#475569',
-        letterSpacing: 1,
-    },
-    detailValue: {
-        fontSize: 15,
+    cardLabel: {
+        fontSize: 7,
         fontWeight: '900',
-        color: '#F1F5F9',
+        color: 'rgba(255,255,255,0.3)',
+        letterSpacing: 1.5,
+    },
+    cardValue: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#FFF',
         fontStyle: 'italic',
+        textTransform: 'uppercase',
     },
     highlightValue: {
-        color: Colors.primary,
-        fontSize: 18,
+        color: '#C5A059',
     },
     fullScreenOverlay: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: 'rgba(6, 6, 9, 0.98)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -404,6 +407,11 @@ const styles = StyleSheet.create({
         top: 60,
         right: 30,
         zIndex: 10,
-        padding: 10,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
     }
 });

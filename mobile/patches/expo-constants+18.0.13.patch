@@ -1,0 +1,50 @@
+diff --git a/node_modules/expo-constants/ios/EXConstantsService.m b/node_modules/expo-constants/ios/EXConstantsService.m
+index f79eaae..89c9c8e 100644
+--- a/node_modules/expo-constants/ios/EXConstantsService.m
++++ b/node_modules/expo-constants/ios/EXConstantsService.m
+@@ -129,4 +129,45 @@ + (NSDictionary *)appConfig
+   return nil;
+ }
+ 
++- (NSString *)iosVersion
++{
++  return [UIDevice currentDevice].systemVersion;
++}
++
++- (NSString *)userInterfaceIdiom
++{
++  UIUserInterfaceIdiom idiom = [UIDevice currentDevice].userInterfaceIdiom;
++  switch (idiom) {
++    case UIUserInterfaceIdiomPhone:
++      return @"phone";
++    case UIUserInterfaceIdiomPad:
++      return @"tablet";
++    case UIUserInterfaceIdiomTV:
++      return @"tv";
++    case UIUserInterfaceIdiomCarPlay:
++      return @"carplay";
++    default:
++      return @"unspecified";
++  }
++}
++
++- (BOOL)isDevice
++{
++#if TARGET_OS_SIMULATOR
++  return NO;
++#else
++  return YES;
++#endif
++}
++
+++ (NSString *)devicePlatform
++{
++  return @"ios";
++}
++
+++ (NSNumber *)deviceYear
++{
++  return @2024;
++}
++
+ @end

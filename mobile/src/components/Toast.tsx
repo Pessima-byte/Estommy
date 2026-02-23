@@ -78,6 +78,7 @@ export default function Toast({ message, type, onHide, duration = 3000 }: ToastP
 
     return (
         <Animated.View
+            pointerEvents="none"
             style={[
                 styles.container,
                 {

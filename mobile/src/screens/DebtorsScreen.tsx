@@ -13,86 +13,11 @@ import { getImageUrl } from '../api/client';
 import { exportToCSV } from '../utils/export';
 import { Download } from 'lucide-react-native';
 import { ActivityLogger } from '../utils/activityLogger';
+import DebtorCard from '../components/DebtorCard';
 
-const DebtorCard = React.memo(({ debtor, onHistory, onSelect, lastNote, lastImage, onImagePress }: { debtor: any, onHistory: (d: any) => void, onSelect: (d: any) => void, lastNote?: string, lastImage?: string, onImagePress?: (uri: string) => void }) => {
-    return (
-        <TouchableOpacity
-            style={styles.debtorCard}
-            activeOpacity={0.85}
-            onPress={() => onSelect(debtor)}
-        >
-            <View style={styles.cardMain}>
-                <View style={styles.avatarSection}>
-                    <View style={styles.avatarContainer}>
-                        {debtor.avatar ? (
-                            <Image source={{ uri: getImageUrl(debtor.avatar) }} style={styles.avatar} />
-                        ) : (
-                            <View style={styles.avatarPlaceholder}>
-                                <Text style={styles.avatarInitial}>{debtor.name[0].toUpperCase()}</Text>
-                            </View>
-                        )}
-                    </View>
-                    <View style={styles.statusDot} />
-                </View>
 
-                <View style={styles.infoSection}>
-                    <Text style={styles.debtorName} numberOfLines={1}>{debtor.name}</Text>
-                    <View style={styles.phoneRow}>
-                        <Text style={styles.debtorPhone}>{debtor.phone || 'REGISTRY NULL'}</Text>
-                        <View style={styles.dotSeparator} />
-                        <Text style={styles.debtorStatus}>ACTIVE</Text>
-                    </View>
-                </View>
 
-                <View style={styles.valueSection}>
-                    <Text style={styles.debtLabel}>DEBT</Text>
-                    <View style={styles.debtValueRow}>
-                        <Text style={styles.debtCurrency}>LE</Text>
-                        <Text style={styles.debtValue}>{(debtor.totalDebt || 0).toLocaleString()}</Text>
-                    </View>
-                </View>
-            </View>
 
-            {lastImage ? (
-                <TouchableOpacity
-                    style={styles.imagePreviewContainer}
-                    activeOpacity={0.9}
-                    onPress={() => onImagePress?.(lastImage)}
-                >
-                    <Image
-                        source={{ uri: getImageUrl(lastImage) }}
-                        style={styles.panoramicImage}
-                        contentFit="cover"
-                        transition={500}
-                    />
-                    <LinearGradient
-                        colors={['transparent', 'rgba(19,19,26,0.8)']}
-                        style={styles.imageOverlay}
-                    />
-                    {lastNote && (
-                        <View style={styles.imageNoteBox}>
-                            <Text style={styles.imageNote} numberOfLines={1}>{lastNote}</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-            ) : lastNote && (
-                <View style={styles.standaloneNoteBox}>
-                    <Text style={styles.lastNote} numberOfLines={1}>{lastNote}</Text>
-                </View>
-            )}
-
-            <View style={styles.cardFooter}>
-                <View style={styles.footerLine} />
-                <TouchableOpacity style={styles.historyTrigger} onPress={() => onHistory(debtor)}>
-                    <Text style={styles.historyText}>VIEW LEDGER HISTORY</Text>
-                    <View style={styles.historyArrow}>
-                        <ChevronRight size={10} color="#C5A059" strokeWidth={3} />
-                    </View>
-                </TouchableOpacity>
-            </View>
-        </TouchableOpacity>
-    );
-});
 
 export default function DebtorsScreen() {
     const { debtors, loading: loadingDebtors, refetch: refetchDebtors } = useDebtors();
@@ -125,25 +50,36 @@ export default function DebtorsScreen() {
 
 
 
-    const filteredDebtors = debtors.filter((d: any) =>
-        d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (d.phone || '').includes(searchTerm)
-    ).sort((a: any, b: any) => {
-        switch (sortBy) {
-            case 'name_asc':
-                return (a.name || '').localeCompare(b.name || '');
-            case 'name_desc':
-                return (b.name || '').localeCompare(a.name || '');
-            case 'newest':
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            case 'oldest':
-                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            case 'debt_desc':
-                return (b.totalDebt || 0) - (a.totalDebt || 0);
-            default:
-                return 0;
-        }
-    });
+    const isTablet = width >= 768;
+    const isDesktop = width >= 768;
+    const numCols = isDesktop ? 3 : 2;
+    const gap = isTablet ? Spacing.lg : 8;
+    const horizontalPadding = isTablet ? Spacing.xl : 8;
+    const sidebarWidth = isDesktop ? 240 : 0;
+    const availableWidth = width - sidebarWidth - (horizontalPadding * 2);
+    const itemWidth = (availableWidth - (gap * (numCols - 1))) / numCols;
+
+    const filteredDebtors = useMemo(() => {
+        return debtors.filter((d: any) =>
+            d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (d.phone || '').includes(searchTerm)
+        ).sort((a: any, b: any) => {
+            switch (sortBy) {
+                case 'name_asc':
+                    return (a.name || '').localeCompare(b.name || '');
+                case 'name_desc':
+                    return (b.name || '').localeCompare(a.name || '');
+                case 'newest':
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                case 'oldest':
+                    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                case 'debt_desc':
+                    return (b.totalDebt || 0) - (a.totalDebt || 0);
+                default:
+                    return 0;
+            }
+        });
+    }, [debtors, searchTerm, sortBy]);
 
     const totalOutstanding = debtors.reduce((acc: number, curr: any) => acc + (curr.totalDebt || 0), 0);
 
@@ -175,58 +111,55 @@ export default function DebtorsScreen() {
     };
 
     const headerComponent = useMemo(() => (
-        <View>
-            {/* Header */}
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.title}>DEBTORS</Text>
-                    <Text style={styles.subtitle}>CUSTOMERS WITH OUTSTANDING BALANCES</Text>
+        <View style={styles.headerContainer}>
+            <View style={styles.headerTop}>
+                <View style={styles.titleBox}>
+                    <Text style={styles.titleMain} numberOfLines={1}>DEBTORS</Text>
+                    <View style={styles.subtitleRow}>
+                        <View style={styles.subtitleLine} />
+                        <Text style={styles.subtitleText} numberOfLines={1}>OUTSTANDING_REGISTRY</Text>
+                    </View>
                 </View>
-                <View style={styles.outstandingCard}>
-                    <Text style={styles.outstandingLabel}>TOTAL OUTSTANDING</Text>
-                    <View style={styles.outstandingValueRow}>
-                        <Text style={styles.outstandingCurrency}>LE</Text>
-                        <Text style={styles.outstandingValue}>{totalOutstanding.toLocaleString()}</Text>
+
+                <View style={styles.totalLiabilityCard}>
+                    <Text style={styles.totalLabel} numberOfLines={1}>TOTAL_DEBT_LOAD</Text>
+                    <View style={styles.totalValueRow}>
+                        <Text style={styles.totalCurrency}>LE</Text>
+                        <Text style={styles.totalValue} numberOfLines={1}>{totalOutstanding.toLocaleString()}</Text>
                     </View>
                 </View>
             </View>
 
-            {/* Search & Actions */}
-            <View style={styles.searchRow}>
-                <View style={styles.searchBox}>
-                    <Search size={20} color="rgba(255,255,255,0.2)" />
+            <View style={styles.searchActionRow}>
+                <View style={styles.searchBarBox}>
+                    <Search size={14} color="#C5A059" style={{ opacity: 0.6 }} />
                     <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search debtors..."
-                        placeholderTextColor="rgba(255,255,255,0.2)"
+                        style={styles.searchBarInput}
+                        placeholder="SEARCH_DATA..."
+                        placeholderTextColor="rgba(197, 160, 89, 0.3)"
                         value={searchTerm}
                         onChangeText={setSearchTerm}
                     />
                 </View>
-                <TouchableOpacity style={styles.sortBtn} onPress={() => setSortModalVisible(true)}>
-                    <ArrowUpDown size={20} color={sortBy === 'debt_desc' ? 'rgba(255,255,255,0.4)' : Colors.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.sortBtn}
-                    activeOpacity={0.8}
-                    onPress={handleExportCSV}
-                >
-                    <Download size={20} color={Colors.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.addBtn}
-                    activeOpacity={0.8}
-                    onPress={() => setShowAdd(true)}
-                >
-                    <Plus size={20} color="#000" />
-                </TouchableOpacity>
+
+                <View style={styles.actionButtons}>
+                    <TouchableOpacity style={styles.actionIconBtn} onPress={() => setSortModalVisible(true)}>
+                        <ArrowUpDown size={16} color="#C5A059" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionIconBtn} onPress={handleExportCSV}>
+                        <Download size={16} color="#C5A059" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.mainAddBtn} onPress={() => setShowAdd(true)}>
+                        <Plus size={20} color="#000" strokeWidth={3} />
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     ), [searchTerm, sortBy, totalOutstanding, debtors]);
 
     const keyExtractor = useCallback((item: any) => item.id, []);
 
-    const renderItem = useCallback(({ item: debtor }: { item: any }) => {
+    const renderItem = useCallback(({ item: debtor, index }: { item: any; index: number }) => {
         const latestCredit = latestCreditsMap[debtor.id];
         return (
             <DebtorCard
@@ -236,16 +169,32 @@ export default function DebtorsScreen() {
                 onHistory={handleHistory}
                 onSelect={handleHistory}
                 onImagePress={(uri) => setViewerImage(uri)}
+                width={itemWidth}
+                index={index}
             />
         );
-    }, [latestCreditsMap, setViewerImage]);
+    }, [latestCreditsMap, setViewerImage, itemWidth]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
+            <LinearGradient
+                colors={['#060609', '#0F172A', '#060608']}
+                style={StyleSheet.absoluteFillObject}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                pointerEvents="none"
+            />
+            {/* Atmosphere Layer: Enhanced multi-source glow */}
+            <View style={styles.atmosphereGlow} pointerEvents="none" />
+            <View style={[styles.atmosphereGlow, { top: '40%', left: -100, opacity: 0.03, backgroundColor: '#00D9FF' }]} pointerEvents="none" />
+
             <FlatList
                 data={filteredDebtors}
                 keyExtractor={keyExtractor}
-                contentContainerStyle={styles.scrollContent}
+                numColumns={numCols}
+                key={numCols}
+                contentContainerStyle={[styles.scrollContent, { paddingHorizontal: horizontalPadding }]}
+                columnWrapperStyle={numCols > 1 ? { gap } : null}
                 ListHeaderComponent={headerComponent}
                 renderItem={renderItem}
                 refreshControl={
@@ -352,370 +301,205 @@ export default function DebtorsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0A0C10',
+    },
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: Colors.primary,
+        opacity: 0.08,
+        transform: [{ scale: 2.5 }],
     },
     scrollContent: {
-        padding: 24,
+        paddingTop: Spacing.md,
     },
-    header: {
+    headerContainer: {
+        marginBottom: 20,
+    },
+    headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 32,
+        alignItems: 'center', // Changed to center for better alignment with the card
+        marginBottom: 24, // Slightly more space before search
     },
-    title: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: '#F8FAFC',
-        fontStyle: 'italic',
-        letterSpacing: -1,
-    },
-    subtitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: 'rgba(255,255,255,0.4)',
-        letterSpacing: 2,
-        marginTop: 4,
-    },
-    outstandingCard: {
-        backgroundColor: 'rgba(197, 160, 89, 0.1)',
-        paddingHorizontal: 24,
-        paddingVertical: 16,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(197, 160, 89, 0.2)',
-        alignItems: 'flex-end',
-    },
-    outstandingLabel: {
-        fontSize: 9,
-        fontWeight: '900',
-        color: '#C5A059',
-        letterSpacing: 1.5,
-        marginBottom: 4,
-    },
-    outstandingValueRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 6,
-    },
-    outstandingCurrency: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: '#F8FAFC',
-        opacity: 0.5,
-    },
-    outstandingValue: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#F8FAFC',
-    },
-    searchRow: {
-        flexDirection: 'row',
-        gap: 16,
-        marginBottom: 32,
-        alignItems: 'center',
-    },
-    searchBox: {
-        flex: 1,
-        height: 52,
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 26,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        gap: 12,
-    },
-    searchInput: {
-        flex: 1,
-        color: '#F8FAFC',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    addBtn: {
-        height: 52,
-        width: 52,
-        backgroundColor: '#F8FAFC',
-        borderRadius: 26,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#FFF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    sortBtn: {
-        width: 52,
-        height: 52,
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 26,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    filterModalContent: {
-        width: '85%',
-        maxWidth: 340,
-        backgroundColor: '#16161D',
-        borderRadius: 32,
-        padding: 32,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-    },
-    modalTitle: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: Colors.primary,
-        letterSpacing: 2,
-        marginBottom: 24,
-        textAlign: 'center',
-    },
-    filterOption: {
-        paddingVertical: 18,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-    },
-    filterOptionText: {
-        fontSize: 14,
-        color: '#F8FAFC',
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    listContainer: {
-        gap: 12,
-    },
-    debtorCard: {
-        backgroundColor: '#13131A',
-        borderRadius: 28,
-        padding: 20,
-        marginBottom: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 8,
-    },
-    cardMain: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    avatarSection: {
-        position: 'relative',
-    },
-    avatarContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: 18,
-        overflow: 'hidden',
-        backgroundColor: '#000',
-        borderWidth: 1.5,
-        borderColor: 'rgba(197, 160, 89, 0.3)',
-    },
-    avatar: {
-        width: '100%',
-        height: '100%',
-    },
-    avatarPlaceholder: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#1E1E26',
-    },
-    avatarInitial: {
-        color: '#C5A059',
-        fontSize: 20,
-        fontWeight: '900',
-    },
-    statusDot: {
-        position: 'absolute',
-        bottom: -2,
-        right: -2,
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        backgroundColor: '#EF4444',
-        borderWidth: 2,
-        borderColor: '#13131A',
-    },
-    infoSection: {
+    titleBox: {
         flex: 1,
     },
-    debtorName: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: '#FFF',
-        fontStyle: 'italic',
-        letterSpacing: -0.5,
-        marginBottom: 2,
-    },
-    noteRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 4,
-    },
-    lastNote: {
-        fontSize: 10,
-        color: 'rgba(197, 160, 89, 0.6)',
-        fontWeight: '700',
-        fontStyle: 'italic',
-        flex: 1,
-    },
-    phoneRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    debtorPhone: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
-        fontWeight: '800',
-        letterSpacing: 1,
-    },
-    dotSeparator: {
-        width: 3,
-        height: 3,
-        borderRadius: 1.5,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-    },
-    debtorStatus: {
-        fontSize: 9,
-        color: '#C5A059',
-        fontWeight: '900',
-        letterSpacing: 1,
-    },
-    valueSection: {
-        alignItems: 'flex-end',
-    },
-    debtLabel: {
-        fontSize: 8,
-        fontWeight: '900',
-        color: 'rgba(197, 160, 89, 0.5)',
-        letterSpacing: 1.5,
-        marginBottom: 2,
-    },
-    debtValueRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 4,
-    },
-    debtCurrency: {
-        fontSize: 11,
-        fontWeight: '900',
-        color: 'rgba(255,255,255,0.25)',
-        fontStyle: 'italic',
-    },
-    debtValue: {
+    titleMain: {
         fontSize: 24,
         fontWeight: '900',
         color: '#FFF',
         fontStyle: 'italic',
+        letterSpacing: -0.5,
     },
-    cardFooter: {
-        marginTop: 16,
-    },
-    footerLine: {
-        height: 1,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        width: '100%',
-        marginBottom: 12,
-    },
-    historyTrigger: {
+    subtitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: 6,
+        marginTop: 2,
     },
-    historyText: {
+    subtitleLine: {
+        width: 12,
+        height: 1,
+        backgroundColor: '#C5A059',
+    },
+    subtitleText: {
+        fontSize: 7.5,
+        fontWeight: '900',
+        color: '#C5A059',
+        letterSpacing: 1.2,
+    },
+    totalLiabilityCard: {
+        backgroundColor: 'rgba(197, 160, 89, 0.03)',
+        paddingHorizontal: 14,
+        paddingVertical: 12, // More vertical breathing room
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(197, 160, 89, 0.12)',
+        alignItems: 'flex-end',
+        minWidth: 110,
+    },
+    totalLabel: {
+        fontSize: 6.5,
+        fontWeight: '900',
+        color: '#94A3B8',
+        letterSpacing: 1,
+        marginBottom: 2,
+    },
+    totalValueRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 3,
+    },
+    totalCurrency: {
         fontSize: 9,
         fontWeight: '900',
-        color: 'rgba(255,255,255,0.2)',
-        letterSpacing: 2,
+        color: '#C5A059',
+        opacity: 0.8,
     },
-    historyArrow: {
-        width: 20,
-        height: 20,
-        borderRadius: 6,
-        backgroundColor: 'rgba(197, 160, 89, 0.1)',
+    totalValue: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#F8FAFC',
+        letterSpacing: -0.2,
+    },
+    searchActionRow: {
+        flexDirection: 'row',
+        gap: 12,
         alignItems: 'center',
+    },
+    searchBarBox: {
+        flex: 1,
+        height: 38, // Slimmer search
+        backgroundColor: 'rgba(255,255,255,0.01)',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.04)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        gap: 8,
+    },
+    searchBarInput: {
+        flex: 1,
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: '700',
+        fontStyle: 'italic',
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 8,
+        alignItems: 'center',
+    },
+    actionIconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(197, 160, 89, 0.2)',
         justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mainAddBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#FFF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        elevation: 5,
     },
     emptyState: {
         padding: 60,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 32,
-        borderWidth: 1,
-        borderStyle: 'dashed',
-        borderColor: 'rgba(255,255,255,0.05)',
     },
     emptyText: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#64748B',
         fontWeight: '800',
         textAlign: 'center',
-        letterSpacing: 1,
+        letterSpacing: 2,
     },
-    imagePreviewContainer: {
-        height: 120,
-        width: '100%',
-        borderRadius: 20,
-        marginTop: 16,
-        overflow: 'hidden',
-        backgroundColor: '#000',
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterModalContent: {
+        width: '80%',
+        backgroundColor: '#0F1115',
+        borderRadius: 24,
+        padding: 24,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(197, 160, 89, 0.2)',
+        shadowColor: '#C5A059',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        elevation: 10,
     },
-    panoramicImage: {
-        width: '100%',
-        height: '100%',
-    },
-    imageOverlay: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    imageNoteBox: {
-        position: 'absolute',
-        bottom: 12,
-        left: 12,
-        right: 12,
-    },
-    imageNote: {
-        fontSize: 11,
-        color: '#FFF',
+    modalTitle: {
+        fontSize: 10,
         fontWeight: '900',
-        fontStyle: 'italic',
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
+        color: '#C5A059',
+        letterSpacing: 2,
+        marginBottom: 20,
+        textAlign: 'center',
     },
-    standaloneNoteBox: {
-        marginTop: 12,
-        paddingHorizontal: 4,
+    filterOption: {
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    filterOptionText: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: '700',
+        fontStyle: 'italic',
     },
     viewerContainer: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.95)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: '#000',
     },
     viewerBackdrop: {
         ...StyleSheet.absoluteFillObject,
     },
     viewerContent: {
-        width: '100%',
-        height: '80%',
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -726,7 +510,7 @@ const styles = StyleSheet.create({
     closeViewerBtn: {
         position: 'absolute',
         top: Platform.OS === 'ios' ? 60 : 40,
-        right: 24,
+        right: 20,
         width: 44,
         height: 44,
         borderRadius: 22,

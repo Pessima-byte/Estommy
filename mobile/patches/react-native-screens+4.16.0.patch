@@ -1,0 +1,16 @@
+diff --git a/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm b/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm
+index 174ee45..7b6c1ec 100644
+--- a/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm
++++ b/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm
+@@ -115,6 +115,11 @@ - (void)invalidateController
+   _controller = nil;
+ }
+ 
++- (BOOL)shouldInvalidateOnMutation:(const facebook::react::ShadowViewMutation &)mutation
++{
++  return (mutation.oldChildShadowView.tag == self.tag && mutation.type == facebook::react::ShadowViewMutation::Delete);
++}
++
+ #else
+ 
+ #pragma mark - RCTInvalidating

@@ -8,9 +8,10 @@ interface SaleCardProps {
     width: number;
     onDelete: (id: string) => void;
     onAudit: (sale: any) => void;
+    isTablet?: boolean;
 }
 
-const SaleCard = ({ item, width, onDelete, onAudit }: SaleCardProps) => {
+const SaleCard = ({ item, width, onDelete, onAudit, isTablet }: SaleCardProps) => {
     const receiptId = item.id ? `#${item.id.slice(0, 8).toUpperCase()}` : '#LMONEDAP';
     const amount = item.amount || 0;
     const items = item.items || 'GENERAL PURCHASE';
@@ -31,8 +32,12 @@ const SaleCard = ({ item, width, onDelete, onAudit }: SaleCardProps) => {
             </View>
 
             <View style={styles.amountContainer}>
-                <Text style={styles.currencySymbol}>Le</Text>
-                <Text style={styles.amountValue} adjustsFontSizeToFit numberOfLines={1}>
+                <Text style={[styles.currencySymbol, !isTablet && { fontSize: 12 }]}>Le</Text>
+                <Text
+                    style={[styles.amountValue, !isTablet && { fontSize: 20, lineHeight: 24 }]}
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                >
                     {amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Text>
             </View>
@@ -46,7 +51,9 @@ const SaleCard = ({ item, width, onDelete, onAudit }: SaleCardProps) => {
             <View style={styles.customerBox}>
                 <View>
                     <Text style={styles.customerLabel}>CUSTOMER</Text>
-                    <Text style={styles.customerName}>{customerName.toUpperCase()}</Text>
+                    <Text style={[styles.customerName, !isTablet && { fontSize: 11 }]} numberOfLines={1}>
+                        {customerName.toUpperCase()}
+                    </Text>
                 </View>
                 <View style={styles.customerIcon}>
                     <User size={16} color="#64748B" />
@@ -69,13 +76,13 @@ const SaleCard = ({ item, width, onDelete, onAudit }: SaleCardProps) => {
 
             <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.auditBtn} onPress={() => onAudit(item)}>
-                    <Text style={styles.auditBtnText}>VIEW AUDIT LOG</Text>
+                    <Text style={styles.auditBtnText}>{isTablet ? 'VIEW AUDIT LOG' : 'AUDIT'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.deleteBtn}
                     onPress={() => onDelete(item.id)}
                 >
-                    <Trash2 size={20} color="#EF4444" />
+                    <Trash2 size={isTablet ? 20 : 16} color="#EF4444" />
                 </TouchableOpacity>
             </View>
         </View>
@@ -85,22 +92,22 @@ const SaleCard = ({ item, width, onDelete, onAudit }: SaleCardProps) => {
 const styles = StyleSheet.create({
     card: {
         backgroundColor: '#16161D',
-        borderRadius: 32,
-        padding: 24,
-        marginBottom: Spacing.lg,
+        borderRadius: 24,
+        padding: 16,
+        marginBottom: 4,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
     cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 24,
+        alignItems: 'center',
+        marginBottom: 16,
     },
     iconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         backgroundColor: '#0F1115',
         justifyContent: 'center',
         alignItems: 'center',
@@ -118,10 +125,10 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     receiptId: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#94A3B8',
         fontWeight: '800',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     amountContainer: {
         flexDirection: 'row',
@@ -136,11 +143,11 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     amountValue: {
-        fontSize: 40,
+        fontSize: 24,
         fontWeight: '900',
         color: '#FFF',
-        letterSpacing: -1,
-        lineHeight: 44,
+        letterSpacing: -0.5,
+        lineHeight: 28,
         flex: 1,
     },
     itemRow: {
@@ -156,19 +163,19 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.05)',
     },
     itemBadgeText: {
-        fontSize: 10,
+        fontSize: 9,
         color: '#94A3B8',
         fontWeight: '700',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     customerBox: {
         backgroundColor: '#1A1A22',
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 12,
+        padding: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
@@ -197,7 +204,7 @@ const styles = StyleSheet.create({
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 24,
+        marginBottom: 16,
     },
     footerLabel: {
         fontSize: 8,
@@ -229,27 +236,27 @@ const styles = StyleSheet.create({
     },
     actionRow: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 8,
     },
     auditBtn: {
         flex: 1,
-        height: 52,
+        height: 40,
         backgroundColor: '#FFF',
-        borderRadius: 16,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
     auditBtnText: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#000',
         fontWeight: '900',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     deleteBtn: {
-        width: 52,
-        height: 52,
+        width: 40,
+        height: 40,
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderRadius: 16,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,

@@ -147,42 +147,46 @@ export default function SettingsScreen({ onLogout }: SettingsScreenProps) {
                 {/* Profile Section */}
                 <LinearGradient
                     colors={['#1E1E26', '#12121A']}
-                    style={styles.profileCard}
+                    style={[styles.profileCard, isIPad && styles.profileCardTablet]}
                 >
-                    <TouchableOpacity
-                        style={styles.avatarContainer}
-                        onPress={handleEditProfile}
-                        activeOpacity={0.8}
-                    >
-                        {user?.image ? (
-                            <Image
-                                source={{ uri: user.image }}
-                                style={styles.avatarPuff}
-                                contentFit="cover"
-                                transition={200}
-                            />
-                        ) : (
-                            <LinearGradient
-                                colors={user?.role === 'ADMIN' ? ['#C5A059', '#803EDB'] : ['#3B82F6', '#2DD4BF']}
-                                style={styles.avatarGradient}
-                            >
-                                <User size={40} color="#000" />
-                            </LinearGradient>
-                        )}
-                        <View style={[styles.roleBadge, user?.role !== 'ADMIN' && { backgroundColor: '#3B82F6' }]}>
-                            <Shield size={10} color="#000" />
-                            <Text style={styles.roleText}>{user?.role || 'USER'}</Text>
+                    <View style={styles.profileMainRow}>
+                        <TouchableOpacity
+                            style={styles.avatarContainer}
+                            onPress={handleEditProfile}
+                            activeOpacity={0.8}
+                        >
+                            {user?.image ? (
+                                <Image
+                                    source={{ uri: user.image }}
+                                    style={styles.avatarPuff}
+                                    contentFit="cover"
+                                    transition={200}
+                                />
+                            ) : (
+                                <LinearGradient
+                                    colors={user?.role === 'ADMIN' ? ['#C5A059', '#803EDB'] : ['#3B82F6', '#2DD4BF']}
+                                    style={styles.avatarGradient}
+                                >
+                                    <User size={30} color="#000" />
+                                </LinearGradient>
+                            )}
+                            <View style={[styles.roleBadge, user?.role !== 'ADMIN' && { backgroundColor: '#3B82F6' }]}>
+                                <Shield size={8} color="#000" />
+                                <Text style={styles.roleText}>{user?.role || 'USER'}</Text>
+                            </View>
+                            <View style={styles.avatarEditBadge}>
+                                <Camera size={10} color="#000" />
+                            </View>
+                        </TouchableOpacity>
+
+                        <View style={styles.profileInfo}>
+                            <Text style={styles.profileName} numberOfLines={1}>{user?.name || 'User Identity'}</Text>
+                            <Text style={styles.profileEmail} numberOfLines={1}>{user?.email || 'identity@estommy.com'}</Text>
                         </View>
-                        <View style={styles.avatarEditBadge}>
-                            <Camera size={12} color="#000" />
-                        </View>
-                    </TouchableOpacity>
-                    <View style={styles.profileInfo}>
-                        <Text style={styles.profileName}>{user?.name || 'User Identity'}</Text>
-                        <Text style={styles.profileEmail}>{user?.email || 'identity@estommy.com'}</Text>
                     </View>
+
                     <TouchableOpacity style={styles.editProfileBtn} onPress={handleEditProfile}>
-                        <Text style={styles.editProfileText}>EDIT PROFILE</Text>
+                        <Text style={styles.editProfileText}>EDIT ACCOUNT</Text>
                     </TouchableOpacity>
                 </LinearGradient>
 
@@ -357,7 +361,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#0A0C10',
     },
     scrollContent: {
-        padding: Spacing.xl,
+        padding: 20,
     },
     header: {
         marginBottom: 32,
@@ -386,49 +390,59 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
     profileCard: {
-        padding: 32,
-        borderRadius: 32,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 40,
+        padding: 20,
+        borderRadius: 24,
+        marginBottom: 32,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
+        gap: 20,
+    },
+    profileCardTablet: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 32,
+    },
+    profileMainRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
     avatarContainer: {
         position: 'relative',
-        marginRight: 24,
+        marginRight: 16,
     },
     avatarGradient: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
     },
     avatarPuff: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         borderWidth: 2,
         borderColor: 'rgba(255,255,255,0.1)',
         backgroundColor: '#1E1E26',
     },
     roleBadge: {
         position: 'absolute',
-        bottom: -4,
-        right: -4,
+        bottom: -2,
+        right: -2,
         backgroundColor: Colors.primary,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        borderWidth: 2,
+        borderWidth: 1.5,
         borderColor: '#12121A',
     },
     roleText: {
-        fontSize: 8,
+        fontSize: 7,
         fontWeight: '900',
         color: '#000',
     },
@@ -437,39 +451,42 @@ const styles = StyleSheet.create({
         top: 0,
         right: 0,
         backgroundColor: '#FFF',
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
+        borderWidth: 1.5,
         borderColor: '#1E1E26',
     },
     profileInfo: {
         flex: 1,
+        justifyContent: 'center',
     },
     profileName: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: '900',
         color: '#FFF',
-        marginBottom: 4,
+        marginBottom: 2,
     },
     profileEmail: {
-        fontSize: 14,
+        fontSize: 12,
         color: '#64748B',
     },
     editProfileBtn: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
+        alignSelf: 'stretch',
+        alignItems: 'center',
     },
     editProfileText: {
-        fontSize: 9,
-        fontWeight: '800',
-        color: '#94A3B8',
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#FFF',
         letterSpacing: 1,
     },
     section: {

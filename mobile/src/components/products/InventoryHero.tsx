@@ -1,9 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Download, Plus } from 'lucide-react-native';
-import { Colors } from '../../constants/Theme';
-import { Product } from '../../types';
+import { Download, Plus, TrendingUp, PackageSearch } from 'lucide-react-native';
+import { Colors, Spacing, BorderRadius } from '../../constants/Theme';
 
 interface InventoryHeroProps {
     totalAssets: number;
@@ -26,192 +25,193 @@ export default function InventoryHero({
 }: InventoryHeroProps) {
     return (
         <View style={styles.heroSection}>
-            <LinearGradient
-                colors={['#1F1F2B', '#111118']}
-                style={styles.heroCard}
-            >
+            <View style={styles.heroCard}>
                 <View style={styles.heroHeaderRow}>
-                    <View style={{ flex: 1 }}>
-                        <View style={styles.brandSubtitleRow}>
-                            <View style={styles.brandLine} />
-                            <Text style={styles.brandSubtitle}>INVENTORY</Text>
+                    <View style={styles.idStation}>
+                        <View style={styles.technicalLogo}>
+                            <PackageSearch color={Colors.primary} size={18} strokeWidth={3} />
                         </View>
-                        <Text style={styles.heroTitle}>REGISTRY & STOCK</Text>
+                        <View style={styles.visualTelemetry}>
+                            <View style={styles.telemetryTop}>
+                                {[0.3, 0.6, 1, 0.4, 0.8, 0.5, 0.9].map((op, i) => (
+                                    <View key={i} style={[styles.telBar, { height: 3 + i, opacity: op }]} />
+                                ))}
+                            </View>
+                            <View style={styles.brandContainer}>
+                                <Text style={styles.brandTitle}>INVENTORY REGISTRY</Text>
+                                <View style={styles.statusRow}>
+                                    <View style={styles.activeDot} />
+                                    <Text style={styles.statusLabel}>MASTER_DATA_ACCESS</Text>
+                                </View>
+                            </View>
+                        </View>
                     </View>
+
                     <View style={styles.heroActionsRow}>
                         <TouchableOpacity style={styles.iconBtn} onPress={onExportCSV} disabled={exporting}>
-                            {exporting ? <ActivityIndicator size="small" color="#94A3B8" /> : <Download size={20} color="#94A3B8" />}
+                            {exporting ? <ActivityIndicator size="small" color={Colors.textMuted} /> : <Download size={14} color={Colors.textMuted} />}
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.addBtn} onPress={onAddProduct}>
-                            <Plus size={20} color="#000" />
+                            <Plus size={16} color="#000" strokeWidth={3} />
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 <View style={styles.intelligenceGrid}>
                     <View style={styles.intelCard}>
-                        <Text style={styles.intelLabel}>TOTAL ASSETS</Text>
-                        <Text style={styles.intelValue}>{totalAssets}</Text>
+                        <Text style={styles.intelLabel}>TOTAL_ASSETS</Text>
+                        <View style={styles.valueRow}>
+                            <View style={[styles.glowBar, { backgroundColor: Colors.primary }]} />
+                            <Text style={styles.intelValue}>{totalAssets}</Text>
+                        </View>
                     </View>
                     <View style={styles.intelCard}>
-                        <Text style={[styles.intelLabel, { color: '#10B981' }]}>STOCKED VALUE</Text>
-                        <View style={styles.intelValueRow}>
-                            <Text style={styles.intelCurrency}>LE</Text>
-                            <Text style={styles.intelValue}>
-                                {stockedValue.toLocaleString()}
-                            </Text>
+                        <Text style={styles.intelLabel}>STOCKED_VAL</Text>
+                        <View style={styles.valueRow}>
+                            <View style={[styles.glowBar, { backgroundColor: Colors.success }]} />
+                            <Text style={styles.intelValue}>{stockedValue.toLocaleString()}</Text>
                         </View>
                     </View>
-                    <View style={styles.intelCardCompact}>
-                        <View style={[styles.statusIndicator, { backgroundColor: '#F59E0B' }]} />
-                        <View>
-                            <Text style={styles.intelLabelSmall}>LOW STOCK</Text>
-                            <Text style={styles.intelValueSmall}>{lowStockCount}</Text>
+
+                    <View style={styles.compactRow}>
+                        <View style={styles.intelCardCompact}>
+                            <View style={[styles.miniDot, { backgroundColor: Colors.warning }]} />
+                            <Text style={styles.intelLabelSmall}>LOW_STOCK: {lowStockCount}</Text>
                         </View>
-                    </View>
-                    <View style={styles.intelCardCompact}>
-                        <View style={[styles.statusIndicator, { backgroundColor: '#EF4444' }]} />
-                        <View>
-                            <Text style={styles.intelLabelSmall}>OUT OF STOCK</Text>
-                            <Text style={styles.intelValueSmall}>{outOfStockCount}</Text>
+                        <View style={styles.intelCardCompact}>
+                            <View style={[styles.miniDot, { backgroundColor: Colors.error }]} />
+                            <Text style={styles.intelLabelSmall}>OUT_STOCK: {outOfStockCount}</Text>
                         </View>
                     </View>
                 </View>
-            </LinearGradient>
+
+                {/* HUD Corner Accents */}
+                <View style={[styles.corner, { top: 12, left: 12, borderTopWidth: 1, borderLeftWidth: 1 }]} />
+                <View style={[styles.corner, { bottom: 12, right: 12, borderBottomWidth: 1, borderRightWidth: 1 }]} />
+                <View style={[styles.corner, { top: 12, right: 12, borderTopWidth: 1, borderRightWidth: 1, opacity: 0.1 }]} />
+                <View style={[styles.corner, { bottom: 12, left: 12, borderBottomWidth: 1, borderLeftWidth: 1, opacity: 0.1 }]} />
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     heroSection: {
-        marginBottom: 24,
+        marginBottom: Spacing.md,
     },
     heroCard: {
-        padding: 24,
-        borderRadius: 28,
+        padding: 16,
+        paddingTop: 20,
+        borderRadius: 20,
+        backgroundColor: 'rgba(15,15,23,0.6)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.06)',
+        overflow: 'hidden',
     },
+    idStation: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+    technicalLogo: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.02)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    visualTelemetry: { flex: 1 },
+    telemetryTop: { flexDirection: 'row', gap: 2, alignItems: 'flex-end', marginBottom: 4 },
+    telBar: { width: 3, borderRadius: 1, backgroundColor: Colors.primary },
+    brandContainer: { marginTop: 0 },
+    brandTitle: { color: '#F8FAFC', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+    activeDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.success, shadowColor: Colors.success, shadowRadius: 4, shadowOpacity: 0.5 },
+    statusLabel: { color: Colors.textMuted, fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+
     heroHeaderRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        marginBottom: 24,
-    },
-    brandSubtitleRow: {
-        flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginBottom: 4,
-    },
-    brandLine: {
-        width: 16,
-        height: 2,
-        backgroundColor: Colors.primary,
-    },
-    brandSubtitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#94A3B8',
-        letterSpacing: 2.5,
-    },
-    heroTitle: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#F8FAFC',
-        letterSpacing: -0.5,
+        justifyContent: 'space-between',
+        marginBottom: 20,
     },
     heroActionsRow: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 8,
     },
     iconBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
+        width: 32,
+        height: 32,
+        borderRadius: 8,
         backgroundColor: 'rgba(255,255,255,0.03)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(255,255,255,0.05)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     addBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
+        width: 32,
+        height: 32,
+        borderRadius: 8,
         backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
     },
     intelligenceGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
+        gap: 10,
     },
     intelCard: {
         flex: 1,
-        minWidth: 140,
-        padding: 18,
+        padding: 12,
         backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 20,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.04)',
+        borderColor: 'rgba(255,255,255,0.03)',
     },
     intelCardCompact: {
         flex: 1,
-        minWidth: 140,
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 18,
-        backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 20,
+        padding: 10,
+        backgroundColor: 'rgba(255,255,255,0.01)',
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.04)',
-        gap: 12,
+        borderColor: 'rgba(255,255,255,0.02)',
+        gap: 8,
+    },
+    compactRow: {
+        flexDirection: 'row',
+        gap: 10,
     },
     intelLabel: {
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: '900',
-        color: '#64748B',
-        letterSpacing: 1.2,
-        marginBottom: 8,
+        color: Colors.textMuted,
+        letterSpacing: 1.5,
+        marginBottom: 6,
     },
     intelLabelSmall: {
-        fontSize: 8,
+        fontSize: 9,
         fontWeight: '900',
-        color: '#64748B',
+        color: Colors.textMuted,
         letterSpacing: 1,
-        marginBottom: 2,
+    },
+    valueRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    glowBar: {
+        width: 2,
+        height: 12,
+        borderRadius: 1,
+        opacity: 0.8,
     },
     intelValue: {
-        fontSize: 20,
+        fontSize: 22, // Stand out more
         fontWeight: '900',
         color: '#F8FAFC',
     },
-    intelValueSmall: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: '#F8FAFC',
-    },
-    intelValueRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 4,
-    },
-    intelCurrency: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#10B981',
-        opacity: 0.7,
-    },
-    statusIndicator: {
+    miniDot: {
         width: 4,
-        height: 24,
+        height: 4,
         borderRadius: 2,
+    },
+    corner: {
+        position: 'absolute',
+        width: 8,
+        height: 8,
+        borderColor: Colors.primary,
+        opacity: 0.3,
     },
 });

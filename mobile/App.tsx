@@ -1,7 +1,10 @@
+import 'react-native-gesture-handler';
+// import 'react-native-reanimated';
 import React, { useState, useEffect, useCallback } from 'react';
 import { deactivateKeepAwake } from 'expo-keep-awake';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Navigation from './src/components/Navigation';
 import LoginScreen from './src/screens/LoginScreen';
 import SecurityWrapper from './src/components/SecurityWrapper';
@@ -128,33 +131,35 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister: legacyPersister,
-          maxAge: 1000 * 60 * 60 * 24,
-        }}
-        onSuccess={() => setIsHydrated(true)}
-      >
-        {!isHydrated ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : (
-          <ToastProvider>
-            <View style={styles.container}>
-              <StatusBar style="light" />
-              {isAuthenticated ? (
-                <SecurityWrapper isAuthenticated={isAuthenticated}>
-                  <Navigation onLogout={handleLogout} />
-                </SecurityWrapper>
-              ) : (
-                <LoginScreen onLogin={() => setIsAuthenticated(true)} />
-              )}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: legacyPersister,
+            maxAge: 1000 * 60 * 60 * 24,
+          }}
+          onSuccess={() => setIsHydrated(true)}
+        >
+          {!isHydrated ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
             </View>
-          </ToastProvider>
-        )}
-      </PersistQueryClientProvider>
+          ) : (
+            <ToastProvider>
+              <View style={styles.container}>
+                <StatusBar style="light" />
+                {isAuthenticated ? (
+                  <SecurityWrapper isAuthenticated={isAuthenticated}>
+                    <Navigation onLogout={handleLogout} />
+                  </SecurityWrapper>
+                ) : (
+                  <LoginScreen onLogin={() => setIsAuthenticated(true)} />
+                )}
+              </View>
+            </ToastProvider>
+          )}
+        </PersistQueryClientProvider>
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }

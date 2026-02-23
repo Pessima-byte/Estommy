@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions, Alert, Modal, RefreshControl, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useProducts } from '../hooks/useProducts';
 import { Colors, Spacing } from '../constants/Theme';
 import { Product } from '../types';
@@ -47,12 +48,13 @@ export default function ProductsScreen() {
     }), [products]);
 
     const isTablet = width >= 768;
-    const isDesktop = width >= 1024;
+    const isDesktop = width >= 768; // Unified with tablet for sidebar awareness
     const isLargePhone = width >= 500;
-    const gap = Spacing.md;
-    const numCols = isDesktop || isTablet ? 3 : isLargePhone ? 2 : 2;
-    const sidebarWidth = width >= 1024 ? 240 : 0;
-    const availableWidth = width - sidebarWidth - (Spacing.xl * 2);
+    const gap = isTablet ? Spacing.md : Spacing.sm; // Tighter gap on mobile
+    const numCols = isDesktop ? 3 : 2; // Always 2 columns on mobile/tablet unless desktop
+    const sidebarWidth = width >= 768 ? 240 : 0;
+    const horizontalPadding = isTablet ? Spacing.xl : 8; // Minimal padding on mobile for wider cards
+    const availableWidth = width - sidebarWidth - (horizontalPadding * 2);
 
     const itemWidth = (availableWidth - (gap * (numCols - 1))) / numCols;
 
@@ -136,18 +138,30 @@ export default function ProductsScreen() {
 
     const keyExtractor = useCallback((item: Product) => item.id, []);
 
-    const renderItem = useCallback(({ item }: { item: Product }) => (
+    const renderItem = useCallback(({ item, index }: { item: Product; index: number }) => (
         <ProductCard
             item={item}
             width={itemWidth}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onPress={handleDetails}
+            isTablet={isTablet}
+            index={index}
         />
-    ), [itemWidth, handleEdit, handleDelete, handleDetails]);
+    ), [itemWidth, handleEdit, handleDelete, handleDetails, isTablet]);
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
+            <LinearGradient
+                colors={['#060609', '#0F172A', '#060608']}
+                style={StyleSheet.absoluteFillObject}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
+            {/* Atmosphere Layer */}
+            <View style={styles.atmosphereGlow} />
+            <View style={[styles.atmosphereGlow, { top: '40%', left: -100, opacity: 0.03, backgroundColor: '#00D9FF' }]} />
+
             <FlatList
                 data={filteredProducts}
                 keyExtractor={keyExtractor}
@@ -156,7 +170,7 @@ export default function ProductsScreen() {
                 ListHeaderComponent={headerComponent}
                 renderItem={renderItem}
                 columnWrapperStyle={numCols > 1 ? { gap } : null}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[styles.scrollContent, { paddingHorizontal: horizontalPadding }]}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading}
@@ -222,10 +236,20 @@ export default function ProductsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0A0C10',
+    },
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: Colors.primary,
+        opacity: 0.08,
+        transform: [{ scale: 2.5 }],
     },
     scrollContent: {
-        padding: Spacing.xl,
+        padding: Spacing.md,
     },
     emptyContainer: {
         padding: 40,

@@ -55,12 +55,12 @@ export default function CustomersScreen() {
     }, [customers, searchQuery, selectedStatus, sortBy]);
 
     const isTablet = width >= 768;
-    const isDesktop = width >= 1024;
-    const gap = Spacing.lg;
-    const totalPadding = Spacing.xl * 2;
+    const isDesktop = width >= 768; // Unified with tablet for sidebar awareness
+    const gap = isTablet ? Spacing.lg : Spacing.sm;
+    const numCols = isDesktop ? 3 : 2; // 2 columns on mobile
     const sidebarWidth = isDesktop ? 240 : 0;
-    const availableWidth = width - sidebarWidth - totalPadding;
-    const numCols = isDesktop ? 3 : (isTablet ? 2 : 1);
+    const horizontalPadding = isTablet ? Spacing.xl : 8;
+    const availableWidth = width - sidebarWidth - (horizontalPadding * 2);
     const itemWidth = (availableWidth - (gap * (numCols - 1))) / numCols;
 
     const handleEdit = (customer: Customer) => {
@@ -127,17 +127,17 @@ export default function CustomersScreen() {
                         <Text style={styles.metricValue}>{customers.length}</Text>
                     </View>
                 </View>
-                <View style={styles.headerMain}>
+                <View style={[styles.headerMain, !isTablet && { gap: 12 }]}>
                     <View style={styles.titleWrapper}>
                         <Text style={styles.headerTitle}>CUSTOMER REGISTRY</Text>
-                        <Text style={styles.headerSubtitle}>Maintain your demographic database and track individual customer journeys.</Text>
+                        <Text style={styles.headerSubtitle} numberOfLines={2}>Maintain your demographic database and track individual customer journeys.</Text>
                     </View>
                     <View style={styles.headerActions}>
                         <TouchableOpacity style={styles.exportBtn} onPress={handleExportCSV} disabled={exporting}>
-                            <Text style={styles.exportBtnText}>{exporting ? 'EXPORTING...' : 'EXPORT CSV'}</Text>
+                            <Text style={styles.exportBtnText}>{exporting ? 'EXPORTING...' : 'EXPORT'}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.addBtn} onPress={() => setIsAdding(true)}>
-                            <Text style={styles.addBtnText}>ADD CUSTOMER</Text>
+                            <Text style={styles.addBtnText}>ADD NEW</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -174,18 +174,31 @@ export default function CustomersScreen() {
 
     const keyExtractor = useCallback((item: Customer) => item.id, []);
 
-    const renderItem = useCallback(({ item }: { item: Customer }) => (
+    const renderItem = useCallback(({ item, index }: { item: Customer; index: number }) => (
         <CustomerCard
             item={item}
             width={itemWidth}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onView={setViewCustomerId}
+            isTablet={isTablet}
+            index={index}
         />
-    ), [itemWidth, handleEdit, handleDelete, setViewCustomerId]);
+    ), [itemWidth, handleEdit, handleDelete, setViewCustomerId, isTablet]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
+            <LinearGradient
+                colors={['#060609', '#0F172A', '#060608']}
+                style={StyleSheet.absoluteFillObject}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                pointerEvents="none"
+            />
+            {/* Atmosphere Layer: Enhanced multi-source glow */}
+            <View style={styles.atmosphereGlow} pointerEvents="none" />
+            <View style={[styles.atmosphereGlow, { top: '40%', left: -100, opacity: 0.03, backgroundColor: '#00D9FF' }]} pointerEvents="none" />
+
             <FlatList
                 data={filteredCustomers}
                 keyExtractor={keyExtractor}
@@ -194,7 +207,7 @@ export default function CustomersScreen() {
                 ListHeaderComponent={headerComponent}
                 renderItem={renderItem}
                 columnWrapperStyle={numCols > 1 ? { gap } : null}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[styles.scrollContent, { paddingHorizontal: horizontalPadding }]}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading}
@@ -288,31 +301,42 @@ export default function CustomersScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0A0C10' },
-    scrollContent: { padding: Spacing.xl },
-    header: { borderRadius: 40, padding: 40, marginBottom: 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-    crmLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    crmLine: { width: 30, height: 2, backgroundColor: Colors.primary },
-    crmLabel: { fontSize: 11, color: Colors.primary, fontWeight: '800', letterSpacing: 2 },
-    headerMetrics: { alignItems: 'flex-end', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.1)', paddingLeft: 20 },
-    metricLabel: { fontSize: 9, color: Colors.primary, fontWeight: '800', letterSpacing: 1, marginBottom: 4 },
-    metricValue: { fontSize: 32, fontWeight: '900', color: '#FFF' },
-    headerMain: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 },
-    titleWrapper: { flex: 1, minWidth: 250 },
-    headerTitle: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1, marginBottom: 8 },
-    headerSubtitle: { fontSize: 14, color: '#64748B', lineHeight: 22, maxWidth: 400 },
-    headerActions: { flexDirection: 'row', gap: 12 },
-    exportBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-    exportBtnText: { color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-    addBtn: { backgroundColor: '#FFF', paddingHorizontal: 24, paddingVertical: 14, borderRadius: BorderRadius.full },
-    addBtnText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
-    filtersRow: { flexDirection: 'row', gap: 16, marginBottom: 32, flexWrap: 'wrap', alignItems: 'center' },
-    searchContainer: { flex: 1, minWidth: 200, height: 48, backgroundColor: '#111827', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    container: { flex: 1 },
+    scrollContent: { paddingTop: Spacing.md },
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: Colors.primary,
+        opacity: 0.08,
+        transform: [{ scale: 2.5 }],
+    },
+    header: { borderRadius: 24, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    crmLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    crmLine: { width: 20, height: 2, backgroundColor: Colors.primary },
+    crmLabel: { fontSize: 9, color: Colors.primary, fontWeight: '800', letterSpacing: 2 },
+    headerMetrics: { alignItems: 'flex-end', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.1)', paddingLeft: 12 },
+    metricLabel: { fontSize: 7, color: Colors.primary, fontWeight: '800', letterSpacing: 1, marginBottom: 2 },
+    metricValue: { fontSize: 20, fontWeight: '900', color: '#FFF' },
+    headerMain: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 },
+    titleWrapper: { flex: 1, minWidth: 200 },
+    headerTitle: { fontSize: 22, fontWeight: '900', color: '#FFF', letterSpacing: -0.5, marginBottom: 4 },
+    headerSubtitle: { fontSize: 11, color: '#64748B', lineHeight: 16, maxWidth: 400 },
+    headerActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+    exportBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    exportBtnText: { color: '#FFF', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+    addBtn: { backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+    addBtnText: { color: '#000', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+    filtersRow: { flexDirection: 'row', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' },
+    searchContainer: { flex: 1, minWidth: 200, height: 44, backgroundColor: '#111827', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     searchInput: { flex: 1, color: '#FFF', fontSize: 13 },
-    statusDropdown: { height: 48, backgroundColor: '#111827', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    statusDropdownText: { color: '#FFF', fontSize: 11, fontWeight: '800', letterSpacing: 1 },
-    sortBtn: { width: 48, height: 48, backgroundColor: '#111827', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    statusDropdown: { height: 44, backgroundColor: '#111827', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    statusDropdownText: { color: '#FFF', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+    sortBtn: { width: 44, height: 44, backgroundColor: '#111827', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
     filterModalContent: { width: '80%', maxWidth: 320, backgroundColor: '#1E1E26', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20 },
     modalTitle: { fontSize: 13, fontWeight: '900', color: Colors.primary, letterSpacing: 2, marginBottom: 24, textAlign: 'center' },

@@ -192,78 +192,99 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ width: '100%', alignItems: 'center' }}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
             >
-                <LinearGradient
-                    colors={['#18181F', '#0F1115']}
-                    style={[styles.container, isTablet ? styles.containerTablet : {}]}
-                >
-                    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                        <View style={styles.header}>
-                            <View>
-                                <Text style={styles.headerTitle}>{isEditing ? 'EDIT PRODUCT' : 'NEW PRODUCT'}</Text>
+                <View style={[styles.modalContent, isTablet && { width: 880, height: 620 }]}>
+                    <LinearGradient
+                        colors={['#060609', '#0F172A', '#060608']}
+                        style={styles.container}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    />
+                    {/* Atmosphere Layer */}
+                    <View style={styles.atmosphereGlow} pointerEvents="none" />
+                    <View style={[styles.atmosphereGlow, { top: '40%', left: -100, opacity: 0.03, backgroundColor: '#00D9FF' }]} pointerEvents="none" />
+
+                    <ScrollView
+                        contentContainerStyle={[styles.scrollContent, isTablet && { padding: 32 }]}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        scrollEnabled={false}
+                    >
+                        <View style={[styles.header, isTablet && { marginBottom: 30 }]}>
+                            <View style={{ flex: 1, paddingRight: 24 }}>
+                                <Text style={[styles.headerTitle, isTablet && { fontSize: 20 }]} numberOfLines={1}>
+                                    {isEditing ? 'EDIT PRODUCT REGISTRY' : 'NEW PRODUCT ENTRY'}
+                                </Text>
                                 <View style={styles.headerSubtitleRow}>
-                                    <View style={styles.subtitleLine} />
-                                    <Text style={styles.headerSubtitle}>{isEditing ? 'UPDATE PRODUCT INFO' : 'ADD NEW ITEM'}</Text>
+                                    <View style={[styles.subtitleLine, isTablet && { width: 40, height: 3 }]} />
+                                    <Text style={[styles.headerSubtitle, isTablet && { fontSize: 12 }]} numberOfLines={1}>
+                                        {isEditing ? 'UPDATING_TELEMETRY' : 'INITIALIZING_CORE_DATA'}
+                                    </Text>
                                 </View>
                             </View>
-                            <View style={styles.assetClassTag}>
-                                <Text style={styles.assetClassLabel}>PRODUCT ID</Text>
-                                <Text style={styles.assetClassValue}>{initialProduct?.id.slice(0, 8).toUpperCase() || 'NEW'}</Text>
+                            <View style={styles.typeTag}>
+                                <Text style={[styles.typeLabel, isTablet && { fontSize: 10 }]}>IDENT_CORE</Text>
+                                <Text style={[styles.typeValue, isTablet && { fontSize: 14 }]}>{initialProduct?.id.slice(0, 8).toUpperCase() || 'NEW_ASSET'}</Text>
                             </View>
                         </View>
 
-                        <View style={[styles.mainContent, isTablet && styles.mainContentTablet]}>
-                            <ProductImagePicker
-                                image={image}
-                                images={images}
-                                onPickImage={pickImage}
-                                onRemoveImage={handleRemoveImage}
-                                isTablet={isTablet}
-                            />
+                        <View style={[styles.mainBody, isTablet && styles.mainBodyTablet]}>
+                            <View style={styles.leftCol}>
+                                <ProductImagePicker
+                                    image={image}
+                                    images={images}
+                                    onPickImage={pickImage}
+                                    onRemoveImage={handleRemoveImage}
+                                    isTablet={isTablet}
+                                />
+                            </View>
 
-                            <ProductFormFields
-                                name={name}
-                                setName={setName}
-                                category={category}
-                                onCategoryPress={() => setCategoryModalVisible(true)}
-                                costPrice={costPrice}
-                                setCostPrice={setCostPrice}
-                                price={price}
-                                setPrice={setPrice}
-                                stock={stock}
-                                setStock={setStock}
-                            />
+                            <View style={styles.rightCol}>
+                                <ProductFormFields
+                                    name={name}
+                                    setName={setName}
+                                    category={category}
+                                    onCategoryPress={() => setCategoryModalVisible(true)}
+                                    costPrice={costPrice}
+                                    setCostPrice={setCostPrice}
+                                    price={price}
+                                    setPrice={setPrice}
+                                    stock={stock}
+                                    setStock={setStock}
+                                />
+
+                                <View style={[styles.buttonRow, isTablet && { marginTop: 30, gap: 20 }]}>
+                                    <TouchableOpacity
+                                        style={[styles.abortBtn, isTablet && { height: 56, paddingHorizontal: 32 }]}
+                                        onPress={onClose}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={[styles.abortText, isTablet && { fontSize: 14 }]}>CANCEL</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.saveBtn, loading && { opacity: 0.7 }, isTablet && { height: 56 }]}
+                                        onPress={handleSubmit}
+                                        disabled={loading}
+                                        activeOpacity={0.8}
+                                    >
+                                        <View style={styles.btnContent}>
+                                            <Text style={[styles.saveBtnText, isTablet && { fontSize: 16 }]}>{isEditing ? 'SYNC_CHANGES' : 'SAVE_PRODUCT'}</Text>
+                                            <ArrowRight size={isTablet ? 20 : 16} color="#000" strokeWidth={3} />
+                                        </View>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </View>
-
-                        <View style={styles.footer}>
-                            <TouchableOpacity style={styles.abortBtn} onPress={onClose}>
-                                <Text style={styles.abortText}>CANCEL</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.provisionBtn}
-                                onPress={handleSubmit}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <ActivityIndicator color="#000" />
-                                ) : (
-                                    <>
-                                        <Text style={styles.provisionText}>{isEditing ? 'SAVE CHANGES' : 'SAVE PRODUCT'}</Text>
-                                        <ArrowRight size={20} color="#000" strokeWidth={2.5} />
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        </View>
+                        <View style={{ height: 40 }} />
                     </ScrollView>
-                </LinearGradient>
+                </View>
             </KeyboardAvoidingView>
 
             <SelectionModal
                 visible={categoryModalVisible}
                 onClose={() => setCategoryModalVisible(false)}
-                title="Select Category"
+                title="Classification Logic"
                 data={filteredCategories}
                 onSelect={(c) => { setCategory(c.name); setCategoryModalVisible(false); }}
                 searchQuery={categorySearchQuery}
@@ -271,8 +292,8 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
                 onCreateNew={handleCreateCategory}
                 createNewText={`Create "${categorySearchQuery}"`}
                 renderItem={(item) => (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#F8FAFC', fontSize: 16, fontWeight: '600' }}>{item.name}</Text>
+                    <View style={styles.categoryItem}>
+                        <Text style={styles.categoryText}>{item.name}</Text>
                         {category === item.name && <Check size={16} color={Colors.primary} />}
                     </View>
                 )}
@@ -284,121 +305,152 @@ export default function AddProductScreen({ onClose, onSuccess, initialProduct }:
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'center',
-        padding: 20,
+        alignItems: 'center',
+    },
+    modalContent: {
+        width: '92%',
+        maxHeight: '94%',
+        backgroundColor: '#0F1115',
+        borderRadius: 28,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+        elevation: 20,
     },
     container: {
-        width: '100%',
-        backgroundColor: '#0F1115',
+        ...StyleSheet.absoluteFillObject,
     },
-    containerTablet: {
-        borderRadius: 32,
-        borderWidth: 1,
-        borderColor: 'rgba(197, 160, 89, 0.2)',
-        overflow: 'hidden',
-        maxWidth: 900,
-        maxHeight: 650,
-        alignSelf: 'center',
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: Colors.primary,
+        opacity: 0.1,
+        transform: [{ scale: 2.5 }],
     },
     scrollContent: {
-        padding: 32,
+        padding: 16,
+        flexGrow: 1,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 24,
+        alignItems: 'baseline',
+        marginBottom: 12,
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 13,
         fontWeight: '900',
         fontStyle: 'italic',
-        color: '#F8FAFC',
-        letterSpacing: -1,
-        marginBottom: 8,
+        color: '#FFF',
+        letterSpacing: 0,
+        marginBottom: 2,
     },
     headerSubtitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
     },
     subtitleLine: {
-        width: 24,
+        width: 20,
         height: 2,
         backgroundColor: Colors.primary,
     },
     headerSubtitle: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: Colors.primary,
-        letterSpacing: 3,
-    },
-    assetClassTag: {
-        alignItems: 'flex-end',
-    },
-    assetClassLabel: {
         fontSize: 8,
         fontWeight: '800',
-        color: '#64748B',
-        letterSpacing: 2,
-        marginBottom: 4,
+        color: Colors.primary,
+        letterSpacing: 1.5,
     },
-    assetClassValue: {
-        fontSize: 12,
+    typeTag: {
+        alignItems: 'flex-end',
+    },
+    typeLabel: {
+        fontSize: 6,
+        fontWeight: '800',
+        color: 'rgba(255,255,255,0.3)',
+        letterSpacing: 1,
+        marginBottom: 2,
+    },
+    typeValue: {
+        fontSize: 8,
         fontWeight: '900',
         color: Colors.primary,
         fontStyle: 'italic',
+        letterSpacing: 0,
     },
-    mainContent: {
-        flexDirection: 'column',
+    mainBody: {
+        gap: 12,
+    },
+    mainBodyTablet: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
         gap: 24,
     },
-    mainContentTablet: {
-        flexDirection: 'row',
-        gap: 48,
+    leftCol: {
+        flex: 1,
     },
-    footer: {
-        marginTop: 24,
+    rightCol: {
+        flex: 1.4,
+        gap: 16,
+    },
+    buttonRow: {
+        marginTop: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 20,
+        gap: 12,
     },
     abortBtn: {
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        height: 48,
+        paddingHorizontal: 20,
+        backgroundColor: 'rgba(255,255,255,0.02)',
         borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     abortText: {
-        fontSize: 11,
-        color: '#94A3B8',
-        fontWeight: '800',
-        letterSpacing: 2,
-        fontStyle: 'italic',
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.4)',
+        fontWeight: '900',
+        letterSpacing: 1,
     },
-    provisionBtn: {
+    saveBtn: {
         flex: 1,
+        height: 48,
         backgroundColor: '#FFF',
-        height: 56,
-        borderRadius: 16,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    btnContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        shadowColor: "#FFF",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
+        gap: 8,
     },
-    provisionText: {
-        fontSize: 14,
+    saveBtnText: {
+        fontSize: 12,
         color: '#000',
         fontWeight: '900',
-        letterSpacing: 3,
-        fontStyle: 'italic',
+        letterSpacing: 0.5,
+    },
+    categoryItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+    },
+    categoryText: {
+        color: '#F8FAFC',
+        fontSize: 15,
+        fontWeight: '700',
     },
 });

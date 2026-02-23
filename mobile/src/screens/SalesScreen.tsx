@@ -79,10 +79,12 @@ export default function SalesScreen() {
 
     // Responsive Layout
     const isTablet = width >= 768;
-    const isDesktop = width >= 1024;
-    const gap = Spacing.lg;
-    const numCols = isDesktop ? 3 : (isTablet ? 2 : 1);
-    const itemWidth = (width - (Spacing.xl * 2) - (gap * (numCols - 1))) / numCols;
+    const isDesktop = width >= 768;
+    const gap = isTablet ? Spacing.lg : Spacing.sm;
+    const numCols = isDesktop ? 3 : 2; // 2 columns on mobile
+    const sidebarWidth = isDesktop ? 240 : 0;
+    const horizontalPadding = isTablet ? Spacing.xl : 8;
+    const itemWidth = (width - sidebarWidth - (horizontalPadding * 2) - (gap * (numCols - 1))) / numCols;
 
     const totalRevenue = sales.reduce((sum: number, sale: Sale) => sum + (sale.amount || 0), 0);
     const netProfit = totalRevenue;
@@ -171,11 +173,23 @@ export default function SalesScreen() {
             width={itemWidth}
             onDelete={handleDelete}
             onAudit={handleAudit}
+            isTablet={isTablet}
         />
-    ), [itemWidth, handleDelete, handleAudit]);
+    ), [itemWidth, handleDelete, handleAudit, isTablet]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
+            <LinearGradient
+                colors={['#060609', '#0F172A', '#060608']}
+                style={StyleSheet.absoluteFillObject}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                pointerEvents="none"
+            />
+            {/* Atmosphere Layer: Enhanced multi-source glow */}
+            <View style={styles.atmosphereGlow} pointerEvents="none" />
+            <View style={[styles.atmosphereGlow, { top: '40%', left: -100, opacity: 0.03, backgroundColor: '#00D9FF' }]} pointerEvents="none" />
+
             <FlatList
                 data={filteredSales}
                 keyExtractor={keyExtractor}
@@ -184,7 +198,7 @@ export default function SalesScreen() {
                 ListHeaderComponent={headerComponent}
                 renderItem={renderItem}
                 columnWrapperStyle={numCols > 1 ? { gap } : null}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[styles.scrollContent, { paddingHorizontal: horizontalPadding }]}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading}
@@ -210,23 +224,33 @@ export default function SalesScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0A0C10',
+    },
+    atmosphereGlow: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: Colors.primary,
+        opacity: 0.08,
+        transform: [{ scale: 2.5 }],
     },
     scrollContent: {
-        padding: Spacing.xl,
+        paddingTop: Spacing.md,
     },
     header: {
-        borderRadius: 40,
-        padding: 32,
-        marginBottom: 32,
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 20,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
     headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 24,
+        alignItems: 'center',
+        marginBottom: 16,
     },
     ledgerLabelRow: {
         flexDirection: 'row',
@@ -246,7 +270,7 @@ const styles = StyleSheet.create({
     },
     metricsContainer: {
         flexDirection: 'row',
-        gap: 24,
+        gap: 12, // Tighter on mobile
         alignItems: 'center',
     },
     metricItem: {
@@ -254,18 +278,18 @@ const styles = StyleSheet.create({
     },
     metricDivider: {
         width: 1,
-        height: 30,
+        height: 20, // Shorter
         backgroundColor: 'rgba(255,255,255,0.1)',
     },
     metricLabel: {
-        fontSize: 9,
+        fontSize: 7, // Smaller labels
         color: Colors.primary,
         fontWeight: '800',
         letterSpacing: 1,
-        marginBottom: 4,
+        marginBottom: 2,
     },
     metricValue: {
-        fontSize: 20,
+        fontSize: 14, // Smaller values
         fontWeight: '900',
         color: '#FFF',
     },
@@ -281,16 +305,16 @@ const styles = StyleSheet.create({
         minWidth: 250,
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 22, // scaled down
         fontWeight: '900',
         color: '#FFF',
-        letterSpacing: -1,
-        marginBottom: 8,
+        letterSpacing: -0.5,
+        marginBottom: 4,
     },
     headerSubtitle: {
-        fontSize: 13,
+        fontSize: 11,
         color: '#64748B',
-        lineHeight: 20,
+        lineHeight: 16,
         maxWidth: 400,
     },
     headerBtnGroup: {
@@ -320,19 +344,19 @@ const styles = StyleSheet.create({
     },
     newEntryText: {
         color: '#000',
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '900',
         letterSpacing: 1.5,
     },
     searchContainer: {
-        height: 52,
+        height: 44, // shorter
         backgroundColor: '#111827',
-        borderRadius: 16,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         gap: 12,
-        marginBottom: 24,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
