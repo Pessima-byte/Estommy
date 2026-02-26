@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, useWindowDimensions, Alert, Platform } from 'react-native';
 import { Image } from 'expo-image';
-import { LayoutGrid, Package, Tags, Users, ShoppingCart, Database, CreditCard, UserMinus, TrendingUp, BarChart3, ShieldCheck, Search, Settings } from 'lucide-react-native';
+import { LayoutGrid, Package, Tags, Users, ShoppingCart, Database, CreditCard, UserMinus, TrendingUp, BarChart3, ShieldCheck, Search, Settings, MessagesSquare, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProductsScreen from '../screens/ProductsScreen';
@@ -16,6 +16,7 @@ import PermissionsScreen from '../screens/PermissionsScreen';
 import ReportsScreen from '../screens/ReportsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
+import AIChatScreen from '../screens/AIChatScreen';
 import SearchModal from './SearchModal';
 import { Colors, Spacing, BorderRadius } from '../constants/Theme';
 import { useProfile } from '../hooks/useProfile';
@@ -25,6 +26,7 @@ const LOGO_IMAGE = require('../../assets/images/logo.jpg');
 
 const NAV_ITEMS = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid, component: DashboardScreen },
+    { id: 'ai', label: 'Estommy AI', icon: Sparkles, component: AIChatScreen },
     { id: 'products', label: 'Products', icon: Package, component: ProductsScreen },
     { id: 'categories', label: 'Categories', icon: Tags, component: CategoriesScreen },
     { id: 'customers', label: 'Customers', icon: Users, component: CustomersScreen },
@@ -54,6 +56,15 @@ export default function Navigation({ onLogout }: NavigationProps) {
     const { width } = useWindowDimensions();
     const isTablet = width >= 768; // Standard tablet breakpoint
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [navigationParams, setNavigationParams] = useState<any>(null);
+    const [aiMessages, setAiMessages] = useState<any[]>([
+        {
+            id: '1',
+            text: "Hello! I am your Estommy Business Assistant. How can I help you today?",
+            sender: 'bot',
+            timestamp: new Date(),
+        }
+    ]);
     const [searchVisible, setSearchVisible] = useState(false);
     const { user } = useProfile();
 
@@ -104,16 +115,23 @@ export default function Navigation({ onLogout }: NavigationProps) {
             extraProps.onLogout = onLogout;
         }
 
+        if (item.id === 'ai') {
+            extraProps.chatHistory = aiMessages;
+            extraProps.setChatHistory = setAiMessages;
+        }
+
         return (
             <View style={{ flex: 1 }}>
                 <Component
-                    onNavigate={(tabId: string) => {
+                    onNavigate={(tabId: string, params?: any) => {
                         if (tabId === 'search') {
                             setSearchVisible(true);
                         } else {
                             setActiveTab(tabId);
+                            setNavigationParams(params || null);
                         }
                     }}
+                    routeParams={navigationParams}
                     {...extraProps}
                 />
             </View>
@@ -259,9 +277,9 @@ export default function Navigation({ onLogout }: NavigationProps) {
                             {[
                                 NAV_ITEMS.find(i => i.id === 'dashboard')!,
                                 NAV_ITEMS.find(i => i.id === 'products')!,
-                                NAV_ITEMS.find(i => i.id === 'credits')!,
+                                NAV_ITEMS.find(i => i.id === 'ai')!,
                                 NAV_ITEMS.find(i => i.id === 'customers')!,
-                                NAV_ITEMS.find(i => i.id === 'debtors')!,
+                                NAV_ITEMS.find(i => i.id === 'credits')!,
                             ].map((item) => {
                                 const Icon = item.icon;
                                 const isActive = activeTab === item.id;

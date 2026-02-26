@@ -39,6 +39,7 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
         config.baseURL = (await getBaseURL()) || undefined;
     }
 
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
 
     if (!authToken) {
         authToken = (await SecureStore.getItemAsync('auth_token')) || null;

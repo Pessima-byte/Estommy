@@ -11,7 +11,7 @@ import CustomerProfileScreen from './CustomerProfileScreen';
 import CustomerCard from '../components/CustomerCard';
 import { Customer } from '../types';
 
-export default function CustomersScreen() {
+export default function CustomersScreen({ routeParams }: { routeParams?: any }) {
     const { customers, loading, refetch, deleteCustomer } = useCustomers();
     const { width } = useWindowDimensions();
     const [isAdding, setIsAdding] = useState(false);
@@ -19,6 +19,12 @@ export default function CustomersScreen() {
     const [viewCustomerId, setViewCustomerId] = useState<string | null>(null);
     const [exporting, setExporting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    React.useEffect(() => {
+        if (routeParams?.customerId) {
+            setViewCustomerId(routeParams.customerId);
+        }
+    }, [routeParams]);
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
     const [statusModalVisible, setStatusModalVisible] = useState(false);
     const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'newest' | 'oldest' | 'debt_desc'>('newest');

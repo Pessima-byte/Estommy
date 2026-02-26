@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { X, User, Camera, ArrowRight, ChevronDown, Check, ChevronLeft } from 'lucide-react-native';
+import { X, User, Camera, ArrowRight, ChevronDown, Check, ChevronLeft, Phone } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as Contacts from 'expo-contacts';
 import { Image } from 'expo-image';
 import { customersAPI, filesAPI, getImageUrl } from '../api/client';
 import { useToast } from '../hooks/useToast';
@@ -22,6 +23,8 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
     const { showToast } = useToast();
     const { width } = useWindowDimensions();
     const isTablet = width >= 768;
+    const phoneInputRef = useRef<TextInput>(null);
+    const isPickingRef = useRef(false);
 
     const [name, setName] = useState(initialCustomer?.name || '');
     const [email, setEmail] = useState(initialCustomer?.email || '');
@@ -36,6 +39,8 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
 
     // Modal States
     const [genderModalVisible, setGenderModalVisible] = useState(false);
+    const [methodModalVisible, setMethodModalVisible] = useState(false);
+    const [isManualInput, setIsManualInput] = useState(initialCustomer?.phone ? true : false);
 
     // Validation States
     const [isPhoneAvailable, setIsPhoneAvailable] = useState(true);
@@ -218,6 +223,35 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
         }
     };
 
+    const handleSelectContact = async () => {
+        if (isPickingRef.current) return;
+        isPickingRef.current = true;
+
+        try {
+            const { status } = await Contacts.requestPermissionsAsync();
+            if (status === 'granted') {
+                const contact = await Contacts.presentContactPickerAsync();
+
+                if (contact && contact.phoneNumbers && contact.phoneNumbers.length > 0) {
+                    const number = contact.phoneNumbers[0].number?.replace(/[^0-9]/g, '').slice(-8) || '';
+                    setPhoneNumber(number);
+
+                    // Auto-fill name if empty
+                    if (!name) {
+                        const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
+                        if (fullName) setName(fullName);
+                    }
+                }
+            } else {
+                showToast('Permission to access contacts was denied', 'error');
+            }
+        } catch (error) {
+            console.error('Contact picker error:', error);
+        } finally {
+            isPickingRef.current = false;
+        }
+    };
+
     const handleSubmit = async () => {
         if (!name) {
             showToast('Please provide at least a name.', 'error');
@@ -341,6 +375,7 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                                         <View style={[styles.phoneInputWrapper, !isPhoneAvailable && styles.inputWrapperError, isTablet && { height: 52, borderRadius: 12 }]}>
                                             <Text style={[styles.phonePrefix, isTablet && { fontSize: 16 }]}>{phoneCode}</Text>
                                             <TextInput
+                                                ref={phoneInputRef}
                                                 style={[styles.input, { marginLeft: 8 }, isTablet && { fontSize: 15 }]}
                                                 placeholder="75553022"
                                                 placeholderTextColor="rgba(255,255,255,0.2)"
@@ -348,7 +383,22 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                                                 value={phoneNumber}
                                                 onChangeText={(text) => setPhoneNumber(text.replace(/[^0-9]/g, '').slice(0, 8))}
                                                 maxLength={8}
+                                                editable={isManualInput}
                                             />
+                                            <TouchableOpacity
+                                                onPress={() => setMethodModalVisible(true)}
+                                                style={{ padding: 4 }}
+                                            >
+                                                <Phone size={isTablet ? 20 : 16} color={isManualInput ? Colors.primary : "rgba(255,255,255,0.2)"} />
+                                            </TouchableOpacity>
+
+                                            {!isManualInput && (
+                                                <TouchableOpacity
+                                                    style={StyleSheet.absoluteFill}
+                                                    onPress={() => setMethodModalVisible(true)}
+                                                    activeOpacity={1}
+                                                />
+                                            )}
                                         </View>
                                     </View>
 
@@ -472,6 +522,47 @@ export default function AddCustomerScreen({ onClose, onSuccess, initialCustomer 
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Text style={{ color: '#F8FAFC', fontSize: 16, fontWeight: '600' }}>{item}</Text>
                         {gender === item && <Check size={16} color={Colors.primary} />}
+                    </View>
+                )}
+            />
+
+            {/* Phone Method Selection */}
+            <SelectionModal
+                visible={methodModalVisible}
+                onClose={() => setMethodModalVisible(false)}
+                title="Phone Entry Method"
+                data={[
+                    { id: 'manual', name: 'Type Number Manually', subtitle: 'Standard Input', icon: 'Edit2' },
+                    { id: 'contacts', name: 'Select from Phone Contacts', subtitle: 'Phonebook Sync', icon: 'Users' }
+                ]}
+                onSelect={(item) => {
+                    setMethodModalVisible(false);
+                    if (item.id === 'manual') {
+                        setIsManualInput(true);
+                        // Auto-focus the input after a short delay
+                        setTimeout(() => {
+                            phoneInputRef.current?.focus();
+                        }, 100);
+                    } else {
+                        setIsManualInput(false);
+                        // Delay slightly to let the method selection modal dismiss on iOS
+                        // Using a slightly longer delay (800ms) to ensure previous modal transition ends
+                        setTimeout(() => {
+                            handleSelectContact();
+                        }, 800);
+                    }
+                }}
+                searchQuery=""
+                onSearchChange={() => { }}
+                renderItem={(item) => (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                        <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(197, 160, 89, 0.1)', justifyContent: 'center', alignItems: 'center' }}>
+                            <Phone size={20} color={Colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ color: '#F8FAFC', fontSize: 15, fontWeight: '700' }}>{item.name}</Text>
+                            <Text style={{ color: 'rgba(197, 160, 89, 0.6)', fontSize: 9, fontWeight: '800', letterSpacing: 1 }}>{item.subtitle.toUpperCase()}</Text>
+                        </View>
                     </View>
                 )}
             />

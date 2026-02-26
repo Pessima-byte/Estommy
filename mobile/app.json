@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.estommy.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSFaceIDUsageDescription": "Allow Estommy to use FaceID for secure access to your inventory data."
+        "NSFaceIDUsageDescription": "Allow Estommy to use FaceID for secure access to your inventory data.",
+        "NSContactsUsageDescription": "Allow Estommy to access your contacts to easily add new clients."
       }
     },
     "android": {
@@ -46,7 +47,8 @@
       ],
       "expo-web-browser",
       "expo-local-authentication",
-      "expo-font"
+      "expo-font",
+      "expo-contacts"
     ],
     "extra": {
       "eas": {

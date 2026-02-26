@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, RefreshControl, useWindowDimensions, Modal, TouchableOpacity, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ShoppingCart, Users, Package, TrendingUp, ChevronRight, UserMinus, CreditCard, ClipboardCheck, Plus } from 'lucide-react-native';
+import { ShoppingCart, Users, Package, TrendingUp, ChevronRight, UserMinus, CreditCard, ClipboardCheck, Plus, Sparkles } from 'lucide-react-native';
 import { Colors, Spacing } from '../constants/Theme';
 import { useProducts } from '../hooks/useProducts';
 import { useCustomers } from '../hooks/useCustomers';
@@ -168,13 +168,17 @@ export default function DashboardScreen({ onNavigate }: { onNavigate?: (tabId: s
                 <View style={[styles.header, !isTablet && { paddingHorizontal: 4 }]}>
                     {!isTablet && (
                         <View style={styles.headerTop}>
-                            <View style={styles.idStation}>
+                            <TouchableOpacity
+                                style={styles.idStation}
+                                onPress={() => handleNavigate('ai')}
+                                activeOpacity={0.7}
+                            >
                                 <View style={styles.technicalLogo}>
-                                    <TrendingUp color={Colors.primary} size={18} strokeWidth={3} />
+                                    <Sparkles color={Colors.primary} size={20} strokeWidth={3} />
                                 </View>
                                 <View style={styles.visualTelemetry}>
                                     <View style={styles.telemetryTop}>
-                                        {[0.3, 0.6, 1, 0.4, 0.8, 0.5, 0.9].map((op, i) => (
+                                        {[0.3, 0.6, 1.0, 0.4, 0.8, 0.5, 0.9].map((op, i) => (
                                             <View key={i} style={[styles.telemetryBar, { height: 12 * op, opacity: op }]} />
                                         ))}
                                     </View>
@@ -182,7 +186,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate?: (tabId: s
                                         <View style={styles.scanningLine} />
                                     </View>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                             <TouchableOpacity style={styles.profileButton} onPress={() => handleNavigate('settings')}>
                                 {user?.image ? (
                                     <Image source={{ uri: user.image }} style={styles.profileImage} />
